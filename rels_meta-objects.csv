@@ -1,5 +1,7 @@
-﻿id,name,reversename,description,label,fromMetaObjectID,toMetaObjectID,fromOptions,toOptions,system
-1,has dependency on,is dependent upon,dependency between tasks in a gantt chart,,1,1,,,TRUE
-2,consists of,is part of,entity has attributes,,5,6,,,TRUE
-3,performed  at,is place of,process is performed at,,4,7,,,TRUE
-4,has association,is association of,entity is related to association,,5,10,,,TRUE
+id,name,reverseName,label,fromMetaObjectID,toMetaObjectID,system
+1,has dependency on,is dependent upon,,1,1,true
+2,consists of,is part of,,5,6,true
+3,performed  at,is place of,,4,7,true
+4,has association,is association of,,5,10,true
+5,executes,executed by,,11,4,false
+6,performs,is performed by,,11,1,false
