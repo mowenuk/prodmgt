@@ -1,0 +1,11 @@
+id,name,label,type_IDs,dataType,widget,options,system
+1,id,ID,"1,2,3,4,5,6,7,8,9,10",short text,text input,,FALSE
+2,object_type,Object Type,"1,2,3,4,5,6,7,8,9,11",short text,select,,FALSE
+3,text,Text,"1,2,3,4,5,6,7,8,9,12",long text,textarea,,FALSE
+4,owner,Owner,"1,2,3,4,5,6,7,8,9,13",short text,text input,,FALSE
+5,comment,Comment,"1,2,3,4,5,6,7,8,9,14",long text,textarea,,FALSE
+6,priority,Priority,"1,2,3,4",short text,single select,"High,Medium,Low",FALSE
+7,duration,Duration,"1,2,3,4,",integer,spinner,,FALSE
+8,start_date,Start Date,"1,2,3",date,date picker,,FALSE
+9,progress,Progress,"1,2,3",percentage,progress bar,,FALSE
+10,volume,Volume,5,short text,text input,,FALSE
