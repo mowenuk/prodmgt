@@ -1,6 +1,7 @@
 /**
  * Utility functions: CSV load/save, URL helpers, and centralized app state.
  * Now uses local `meta-models` folder for CSV files on GitHub Pages.
+ * Includes debug logging to trace execution.
  */
 import Papa from 'papaparse';
 
@@ -21,7 +22,9 @@ export const BASE_PATH = './meta-models/';
  */
 export function getFilename(base, prefix = '') {
   const name = `${prefix ? prefix + '_' : ''}${base}`;
-  return `${BASE_PATH}${name}`;
+  const path = `${BASE_PATH}${name}`;
+  console.debug(`[utils] getFilename: base=${base}, prefix=${prefix} -> path=${path}`);
+  return path;
 }
 
 /**
@@ -30,10 +33,25 @@ export function getFilename(base, prefix = '') {
  * @param {function(Array<Object>)} callback - Receives parsed CSV data.
  */
 export function autoLoadCSV(url, callback) {
+  console.debug(`[utils] autoLoadCSV: fetching ${url}`);
   fetch(url)
-    .then(res => { if (!res.ok) throw new Error(`Failed to fetch ${url}`); return res.text(); })
-    .then(text => Papa.parse(text, { header: true, skipEmptyLines: true, complete: ({ data }) => callback(data) }))
-    .catch(err => console.error(err));
+    .then(res => {
+      console.debug(`[utils] autoLoadCSV: fetched ${url} - status=${res.status}`);
+      if (!res.ok) throw new Error(`Failed to fetch ${url}`);
+      return res.text();
+    })
+    .then(text => {
+      console.debug(`[utils] autoLoadCSV: parsing CSV from ${url}`);
+      Papa.parse(text, {
+        header: true,
+        skipEmptyLines: true,
+        complete: ({ data }) => {
+          console.debug(`[utils] autoLoadCSV: parsed ${data.length} rows from ${url}`, data);
+          callback(data);
+        }
+      });
+    })
+    .catch(err => console.error(`[utils] autoLoadCSV error for ${url}:`, err));
 }
 
 /**
@@ -43,6 +61,7 @@ export function autoLoadCSV(url, callback) {
  * @param {Array<string>} columns - Column order for CSV.
  */
 export function saveCSV(data, filename, columns) {
+  console.debug(`[utils] saveCSV: serializing ${data.length} records to ${filename}`);
   const csv = Papa.unparse(data, { columns });
   const blob = new Blob([csv], { type: 'text/csv' });
   const url = URL.createObjectURL(blob);
@@ -50,6 +69,7 @@ export function saveCSV(data, filename, columns) {
   a.href = url;
   a.download = filename;
   a.click();
+  console.debug(`[utils] saveCSV: download triggered for ${filename}`);
   URL.revokeObjectURL(url);
 }
 
@@ -58,6 +78,7 @@ export function saveCSV(data, filename, columns) {
  * @param {string=} prefix - Optional prefix for dataset filenames.
  */
 export function loadDataset(prefix = '') {
+  console.debug(`[utils] loadDataset: prefix=${prefix}`);
   autoLoadCSV(getFilename('meta-objects.csv', prefix), loadTypesFromData);
   autoLoadCSV(getFilename('rels_meta-objects.csv', prefix), loadRelsFromData);
   autoLoadCSV(getFilename('meta-object-properties.csv', prefix), loadSchemaFromData);
