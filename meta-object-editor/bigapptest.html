@@ -268,6 +268,30 @@
 
 
 <script>
+
+// Generic Bootstrap colour map
+const BS_COLOR_MAP = {
+  primary:   'primary',
+  secondary: 'secondary',
+  success:   'success',
+  danger:    'danger',
+  warning:   'warning',
+  info:      'info',
+  light:     'light',
+  dark:      'dark',
+  // common synonyms → contexts
+  blue:      'primary',
+  grey:      'secondary',
+  gray:      'secondary',
+  green:     'success',
+  red:       'danger',
+  yellow:    'warning',
+  teal:      'info',
+  white:     'light',
+  black:     'dark'
+};
+
+  
   let schemaRows = [], metaTypes = [], metaRels = [];
   const dataTypeOptions = ['short text','long text','integer','date','percentage','boolean'];
   // map each data type to its allowed widgets
@@ -275,7 +299,7 @@ const widgetsByDataType = {
   'short text':   ['text input','search input','email input','url input','tel input','floating label','select', 'single select', 'multi-select'],
   'long text':    ['textarea','rich text','markdown editor','code editor'],
   'integer':      ['spinner','stepper','range slider'],
-  'date':         ['date picker','time picker','datetime-local','month picker','week picker'],
+  'd  ate':         ['date picker','time picker','datetime-local','month picker','week picker'],
   'percentage':   ['progress bar','editable progress bar','dial gauge'],
   'boolean':      ['checkbox','radio group','toggle buttons'],
   // you can add more data types here...
@@ -294,6 +318,8 @@ const widgetHelpText = {
   'editable progress bar':  'Enter initialValue,max (e.g. 50,100).',
   'dial gauge':             'Enter min,max (e.g. 0,360).',
   'text input':             'Enter the default text you want pre-filled (e.g. Specify your name).',
+    'progress bar':           'Enter segments as "percentage: Label: Color", separated by commas. ' +
+  'E.g. 40: Free Space: success, 10: Warning: warning, 20: Danger: danger',
   // everything else:
   'search input':           'No user options needed.',
   'email input':            'No user options needed.',
@@ -310,7 +336,7 @@ const widgetHelpText = {
   'datetime-local':         'No user options needed.',
   'month picker':           'No user options needed.',
   'week picker':            'No user options needed.',
-  'progress bar':           'No user options needed.',
+
   'checkbox':               'No user options needed.'
 };
   const widgetOptions = ['text input','textarea','spinner','date picker','progress bar','checkbox','slider','select','single select','multi-select'];
@@ -337,7 +363,8 @@ const userOptionWidgets = [
   'single select',
   'multi-select',
   'editable progress bar',
-  'dial gauge'
+  'dial gauge',
+  'progress bar'
 ];
 
   // Tab switching
@@ -795,12 +822,35 @@ function renderPreviewForm() {
           break;
         }
 
-        case 'progress bar':
-          input = document.createElement('progress');
-          input.className = 'form-range w-100';
-          input.max = 100;
-          input.value = parseFloat(r.options[0]) || 0;
-          break;
+      case 'progress bar': {
+        // Create container
+        const progressContainer = document.createElement('div');
+        progressContainer.className = 'progress';
+
+        // Each option should be "number: Label: Color"
+        // e.g. "40: Free Space: success", "10: Warning: warning", ...
+        r.options.forEach(opt => {
+          const parts = opt.split(':').map(s => s.trim());
+          if (parts.length >= 2) {
+            const width = parts[0];            // e.g. "40"
+            const label = parts[1];            // e.g. "Free Space"
+            const color = parts[2] || 'secondary'; // e.g. "success"
+            
+            const bar = document.createElement('div');
+            bar.className = `progress-bar bg-${color}`;
+            bar.style.width = `${width}%`;
+            bar.textContent = label;
+            progressContainer.appendChild(bar);
+          }
+        });
+
+        // Assemble into the form grid
+        wrapper.appendChild(progressContainer);
+        col.appendChild(wrapper);
+        row.appendChild(col);
+        return;  // stop further generic appending
+      }
+
 
         case 'checkbox':
           input = document.createElement('input');
