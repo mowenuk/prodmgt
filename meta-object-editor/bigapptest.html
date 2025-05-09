@@ -970,9 +970,9 @@ function renderPreviewForm() {
   
   
   window.addEventListener('DOMContentLoaded', () => {
-  autoLoadCSV('https://raw.githubusercontent.com/mowenuk/prodmgt/main/meta-objects.csv', loadTypesFromData);
-  autoLoadCSV('https://raw.githubusercontent.com/mowenuk/prodmgt/main/rels_meta-objects.csv', loadRelsFromData);
-  autoLoadCSV('https://raw.githubusercontent.com/mowenuk/prodmgt/main/meta-object-properties.csv', loadSchemaFromData);
+  autoLoadCSV('https://raw.githubusercontent.com/mowenuk/prodmgt/main/meta-object-editor/meta-models/meta-objects.csv', loadTypesFromData);
+  autoLoadCSV('https://raw.githubusercontent.com/mowenuk/prodmgt/main/meta-object-editor/meta-models/rels_meta-objects.csv', loadRelsFromData);
+  autoLoadCSV('https://raw.githubusercontent.com/mowenuk/prodmgt/main/meta-object-editor/meta-models/meta-object-properties.csv', loadSchemaFromData);
 });
 
 document.getElementById('saveAllBtn').addEventListener('click', () => {
