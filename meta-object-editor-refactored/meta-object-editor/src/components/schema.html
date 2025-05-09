@@ -1,0 +1,125 @@
+<!-- filepath: /meta-object-editor/meta-object-editor/src/components/schema.html -->
+<div id="schemaTab" class="tab-content">
+  <div class="controls">
+    <input type="file" id="schemaFile" accept=".csv" />
+    <button class="btn btn-primary" id="loadSchemaBtn">Load Properties</button>
+    <button class="btn btn-primary" id="addSchemaBtn">Add Attribute</button>
+    <button class="btn btn-primary" id="downloadSchemaBtn">Download Properties</button>
+    <button class="btn btn-secondary" id="toggleExampleTabBtn">Toggle Example Widgets</button>
+  </div>
+  <div id="exampleWidgetTab" class="mt-4" style="display:none;">
+    <h4>Widget &amp; Data Type Examples</h4>
+    <div class="row row-cols-1 row-cols-md-2 g-4">
+      <div class="col">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Short Text (Text Input)</h5>
+            <input type="text" class="form-control" placeholder="Example text">
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Long Text (Textarea)</h5>
+            <textarea class="form-control" rows="3">Example long text</textarea>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Integer (Spinner)</h5>
+            <input type="number" class="form-control" value="42">
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Date (Date Picker)</h5>
+            <input type="date" class="form-control">
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Percentage (Progress Bar)</h5>
+            <progress class="form-range w-100" value="65" max="100"></progress>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Boolean (Checkbox)</h5>
+            <div class="form-check form-switch">
+              <input class="form-check-input" type="checkbox" id="booleanExample" checked>
+              <label class="form-check-label" for="booleanExample">Enabled</label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Slider</h5>
+            <input type="range" class="form-range" min="0" max="100" value="50">
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Single Select</h5>
+            <select class="form-select">
+              <option>Option A</option>
+              <option selected>Option B</option>
+              <option>Option C</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Multi-Select</h5>
+            <select multiple class="form-select">
+              <option selected>Option 1</option>
+              <option>Option 2</option>
+              <option>Option 3</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="col">
+        <div class="card h-100 shadow-sm">
+          <div class="card-body">
+            <h5 class="card-title">Dial Gauge (0–100)</h5>
+            <div id="gaugeExample" style="width:200px; height:160px; margin:0 auto;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <table>
+    <thead>
+      <tr>
+        <th>ID</th>
+        <th>Name</th>
+        <th>Label</th>
+        <th>Types</th>
+        <th>Data Type</th>
+        <th>Widget</th>
+        <th>Help</th>
+        <th>Options</th>
+        <th>Group</th>
+        <th>Layout</th>
+        <th>System</th>
+        <th>Actions</th>
+      </tr>
+    </thead>
+    <tbody id="schemaBody"></tbody>
+  </table>
+</div>
