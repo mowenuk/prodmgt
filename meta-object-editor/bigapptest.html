@@ -109,6 +109,37 @@
         </div>
       </div>
     </div>
+  <!-- Example: Integer with prefix (Before:£, Amount GBP) -->
+  <div class="col">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Integer Input (Prefix)</h5>
+        <div class="input-group mb-2">
+          <span class="input-group-text">£</span>
+          <input type="number" class="form-control" placeholder="Amount GBP">
+        </div>
+        <p class="small text-muted mb-0">
+          Options: Before:£, Amount GBP
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Example: Short Text with suffix (After:.com, your email) -->
+  <div class="col">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Short Text Input (Suffix)</h5>
+        <div class="input-group mb-2">
+          <input type="text" class="form-control" placeholder="your email">
+          <span class="input-group-text">.com</span>
+        </div>
+        <p class="small text-muted mb-0">
+          Options: After:.com, your email
+        </p>
+      </div>
+    </div>
+  </div>
 
     <!-- Long Text -->
     <div class="col">
@@ -149,6 +180,70 @@
         </div>
       </div>
     </div>
+   <!-- … your existing cards … -->
+
+   <!-- Example: Explicit max (30: Used: danger, 20: Free: success, Max: 80) -->
+  <div class="col">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Progress Bar (Max = 80)</h5>
+        <div class="progress mb-2">
+          <div class="progress-bar bg-danger" role="progressbar" style="width:37.5%">
+            Used
+          </div>
+          <div class="progress-bar bg-success" role="progressbar" style="width:25%">
+            Free
+          </div>
+        </div>
+        <p class="small text-muted mb-0">
+          Options: 30: Used: danger, 20: Free: success, Max: 80
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Example: Default max=100 (40: Ok: info, 60: Busy: warning) -->
+  <div class="col">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Progress Bar (Default Max)</h5>
+        <div class="progress mb-2">
+          <div class="progress-bar bg-info" role="progressbar" style="width:40%">
+            Ok
+          </div>
+          <div class="progress-bar bg-warning" role="progressbar" style="width:60%">
+            Busy
+          </div>
+        </div>
+        <p class="small text-muted mb-0">
+          Options: 40: Ok: info, 60: Busy: warning
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Example: Width-only segments (25, 25, 50: Half) -->
+  <div class="col">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body">
+        <h5 class="card-title">Progress Bar (Width-only)</h5>
+        <div class="progress mb-2">
+          <div class="progress-bar" role="progressbar" style="width:25%"></div>
+          <div class="progress-bar" role="progressbar" style="width:25%"></div>
+          <div class="progress-bar" role="progressbar" style="width:50%">
+            Half
+          </div>
+        </div>
+        <p class="small text-muted mb-0">
+          Options: 25, 25, 50: Half
+        </p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- … then close your row and exampleWidgetTab as before … -->
+
 
     <!-- Boolean -->
     <div class="col">
@@ -291,15 +386,15 @@ const BS_COLOR_MAP = {
   black:     'dark'
 };
 
-  
+
   let schemaRows = [], metaTypes = [], metaRels = [];
   const dataTypeOptions = ['short text','long text','integer','date','percentage','boolean'];
   // map each data type to its allowed widgets
 const widgetsByDataType = {
-  'short text':   ['text input','search input','email input','url input','tel input','floating label','select', 'single select', 'multi-select'],
-  'long text':    ['textarea','rich text','markdown editor','code editor'],
-  'integer':      ['spinner','stepper','range slider'],
-  'd  ate':         ['date picker','time picker','datetime-local','month picker','week picker'],
+  'short text':   ['text input','select', 'single select', 'multi-select'],
+  'long text':    ['textarea','rich text'],
+  'integer':      ['number','spinner','stepper','range slider'],
+  'date':         ['date picker','time picker','month picker','week picker'],
   'percentage':   ['progress bar','editable progress bar','dial gauge'],
   'boolean':      ['checkbox','radio group','toggle buttons'],
   // you can add more data types here...
@@ -317,23 +412,16 @@ const widgetHelpText = {
   'multi-select':           'Enter choices comma-separated (e.g. Apple,Banana,Cherry).',
   'editable progress bar':  'Enter initialValue,max (e.g. 50,100).',
   'dial gauge':             'Enter min,max (e.g. 0,360).',
-  'text input':             'Enter the default text you want pre-filled (e.g. Specify your name).',
+  'text input':             'EFor a prefix or suffix, use "Before:symbol, placeholder" or "After:symbol, placeholder". E.g. Before:@, Username or After:.com, your email.',
     'progress bar':           'Enter segments as "percentage: Label: Color", separated by commas. ' +
-  'E.g. 40: Free Space: success, 10: Warning: warning, 20: Danger: danger',
+  'E.g. 40: Free Space: success, 10: Warning: warning, 20: Danger: danger.  Numbers create a width only, width and label produce a labeled bar.',
+  'spinner' :                'For a prefix or suffix, use "Before:symbol, placeholder" or "After:symbol, placeholder". E.g. Before:£, Amount GBP.',
   // everything else:
-  'search input':           'No user options needed.',
-  'email input':            'No user options needed.',
-  'url input':              'No user options needed.',
-  'tel input':              'No user options needed.',
-  'floating label':         'No user options needed.',
   'textarea':               'No user options needed.',
   'rich text':              'No user options needed.',
-  'markdown editor':        'No user options needed.',
-  'code editor':            'No user options needed.',
-  'spinner':                'No user options needed.',
   'date picker':            'No user options needed.',
   'time picker':            'No user options needed.',
-  'datetime-local':         'No user options needed.',
+
   'month picker':           'No user options needed.',
   'week picker':            'No user options needed.',
 
@@ -355,6 +443,7 @@ const widgetHelpText = {
 // Only these widgets require the user to supply “options” (e.g. enum values or ranges)
 const userOptionWidgets = [
   'text input',
+  'spinner',
   'range slider',
   'stepper',
   'radio group',
@@ -742,32 +831,108 @@ function renderPreviewForm() {
       let input;
 
       switch (r.widget) {
-        case 'text input':
-          input = document.createElement('input');
-          input.type = 'text';
-          input.className = 'form-control';
-          if (r.options[0]) input.value = r.options[0];
-          break;
 
-        case 'search input':
-        case 'email input':
-        case 'url input':
-        case 'tel input':
-          input = document.createElement('input');
-          input.type = r.widget.split(' ')[0];
-          input.className = 'form-control';
-          break;
+  case 'text input':
+  case 'spinner': {
+    // Determine input type
+    const isNumber = r.widget === 'spinner';
+    // Parse prefix/suffix
+    let before = '', after = '', placeholder = '';
+    if (r.options.length) {
+      // Expect ["Before:£","Amount GBP"] or ["After:.com","your email"]
+      const [opt1, opt2] = r.options;
+      const [k,v] = opt1.split(':').map(s=>s.trim());
+      if (k.toLowerCase() === 'before') before = v;
+      if (k.toLowerCase() === 'after')  after  = v;
+      placeholder = (opt2 || '').trim();
+    }
+  
+    // Build input group if needed
+    if (before || after) {
+      const group = document.createElement('div');
+      group.className = 'input-group';
 
+      if (before) {
+        const span = document.createElement('span');
+        span.className = 'input-group-text';
+        span.textContent = before;
+        group.appendChild(span);
+      }
+
+      const inp = document.createElement('input');
+      inp.type = isNumber ? 'number' : 'text';
+      inp.className = 'form-control';
+      if (placeholder) inp.placeholder = placeholder;
+      group.appendChild(inp);
+
+      if (after) {
+        const span = document.createElement('span');
+        span.className = 'input-group-text';
+        span.textContent = after;
+        group.appendChild(span);
+      }
+
+      wrapper.appendChild(group);
+    } else {
+      // Fallback to plain input
+      const inp = document.createElement('input');
+      inp.type = isNumber ? 'number' : 'text';
+      inp.className = 'form-control';
+      if (r.options[0]) inp.placeholder = r.options[0];
+      wrapper.appendChild(inp);
+    }
+
+    col.appendChild(wrapper);
+    row.appendChild(col);
+    return;
+  }
+
+  case 'progress bar': {
+    // 1) Extract optional Max
+    let maxValue = 100;
+    const segments = [];
+    r.options.forEach(opt => {
+      const [key,val] = opt.split(':').map(s=>s.trim());
+      if (key.toLowerCase() === 'max') {
+        maxValue = parseFloat(val) || maxValue;
+      } else {
+        segments.push(opt);
+      }
+    });
+
+    // 2) Build container
+    const progressContainer = document.createElement('div');
+    progressContainer.className = 'progress';
+
+    segments.forEach(opt => {
+      const parts   = opt.split(':').map(s=>s.trim());
+      const value   = parseFloat(parts[0]) || 0;
+      const pct     = (value / maxValue) * 100;
+      const label   = parts[1] || '';
+      const rawClr  = (parts[2] || '').toLowerCase();
+      const bsClr   = BS_COLOR_MAP[rawClr];
+
+      const bar = document.createElement('div');
+      bar.className = bsClr
+        ? `progress-bar bg-${bsClr}`
+        : 'progress-bar';
+      bar.style.width = `${pct}%`;
+      if (label) bar.textContent = label;
+
+      progressContainer.appendChild(bar);
+    });
+
+    wrapper.appendChild(progressContainer);
+    col.appendChild(wrapper);
+    row.appendChild(col);
+    return;
+  }
         case 'textarea':
           input = document.createElement('textarea');
           input.className = 'form-control';
           break;
 
-        case 'spinner':
-          input = document.createElement('input');
-          input.type = 'number';
-          input.className = 'form-control';
-          break;
+ 
 
         case 'stepper': {
           const grp = document.createElement('div');
@@ -822,34 +987,8 @@ function renderPreviewForm() {
           break;
         }
 
-      case 'progress bar': {
-        // Create container
-        const progressContainer = document.createElement('div');
-        progressContainer.className = 'progress';
 
-        // Each option should be "number: Label: Color"
-        // e.g. "40: Free Space: success", "10: Warning: warning", ...
-        r.options.forEach(opt => {
-          const parts = opt.split(':').map(s => s.trim());
-          if (parts.length >= 2) {
-            const width = parts[0];            // e.g. "40"
-            const label = parts[1];            // e.g. "Free Space"
-            const color = parts[2] || 'secondary'; // e.g. "success"
-            
-            const bar = document.createElement('div');
-            bar.className = `progress-bar bg-${color}`;
-            bar.style.width = `${width}%`;
-            bar.textContent = label;
-            progressContainer.appendChild(bar);
-          }
-        });
 
-        // Assemble into the form grid
-        wrapper.appendChild(progressContainer);
-        col.appendChild(wrapper);
-        row.appendChild(col);
-        return;  // stop further generic appending
-      }
 
 
         case 'checkbox':
