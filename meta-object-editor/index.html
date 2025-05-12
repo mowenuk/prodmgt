@@ -916,22 +916,30 @@ function renderPreviewForm() {
   form.innerHTML = '';
 
    // --- Render the meta‐type name & ID at the top ---
-  const mt = metaTypes.find(mt => mt.id === typeId) || {};
-  const headerDiv = document.createElement('div');
-  headerDiv.className = 'mb-4';
+  // Lookup the current meta-type
+const mt = metaTypes.find(mt => mt.id === typeId) || {};
 
-  // Type name as primary heading
-  const nameEl = document.createElement('h4');
-  nameEl.textContent = mt.name || '';
-  headerDiv.appendChild(nameEl);
+// Create header container
+const headerDiv = document.createElement('div');
+headerDiv.className = 'mb-4';
 
-  // ID as secondary, grey label
-  const idEl = document.createElement('small');
-  idEl.className = 'text-secondary';
-  idEl.textContent = `ID: ${mt.id || ''}`;
-  headerDiv.appendChild(idEl);
+// Create a single <h4> that holds both name and ID
+const titleEl = document.createElement('h4');
+titleEl.className = 'd-flex align-items-baseline';
 
-  form.appendChild(headerDiv);
+// Meta-type name
+const nameNode = document.createTextNode(mt.name || '');
+titleEl.appendChild(nameNode);
+
+// ID as a muted <small> right next to it
+const idEl = document.createElement('small');
+idEl.className = 'text-secondary ms-2';
+idEl.textContent = `ID: ${mt.id || ''}`;
+titleEl.appendChild(idEl);
+
+// Append the title to the header
+headerDiv.appendChild(titleEl);
+form.appendChild(headerDiv);
 
   // --- Group attributes by “group”, but skip id & object_type entirely ---
   const grouped = {};
