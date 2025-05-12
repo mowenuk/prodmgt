@@ -5,7 +5,7 @@ id,name,label,type_IDs,dataType,widget,options,group,layout,system
 4,owner,Owner,"1,2,3,4,5,6,7,8,9,10",short text,text input,,System,half-right,TRUE
 5,comment,Comment,"1,2,3,4,5,6,7,8,9,10",long text,textarea,,,full-width,FALSE
 6,priority,Priority,"1,2,3,4,9",short text,single select,"High,Medium,Low",,quarter,FALSE
-7,duration,Duration,"1,2,3,4,",integer,spinner,,,quarter,FALSE
+7,duration,Duration,"1,2,3,4,",integer,spinner,"After: Days,Number of Days",,quarter,FALSE
 8,start_date,Start Date,"1,2,3",date,date picker,,,quarter,FALSE
 9,progress,Progress,"1,2,3",percentage,progress bar,,,full-width,FALSE
 10,volume,Volume,5,short text,text input,,,quarter,FALSE
