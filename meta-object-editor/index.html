@@ -663,7 +663,7 @@ function renderSchema() {
 
   schemaRows.forEach((r, i) => {
     const tr = document.createElement('tr');
-
+    const isSystem = Boolean(r.system);
     // ───── ID ─────────────────────────────────────
     (() => {
       const td = document.createElement('td');
@@ -678,6 +678,7 @@ function renderSchema() {
       const td = document.createElement('td');
       const inp = document.createElement('input');
       inp.type = 'text'; inp.value = r.name;
+      inp.disabled = isSystem;                 // ← disable if system
       inp.addEventListener('change', e => r.name = e.target.value);
       td.appendChild(inp);
       tr.appendChild(td);
@@ -688,6 +689,7 @@ function renderSchema() {
       const td = document.createElement('td');
       const inp = document.createElement('input');
       inp.type = 'text'; inp.value = r.label;
+      inp.disabled = isSystem;                // ← disable if system
       inp.addEventListener('change', e => r.label = e.target.value);
       td.appendChild(inp);
       tr.appendChild(td);
@@ -699,6 +701,7 @@ function renderSchema() {
       if (metaTypes.length) {
         const sel = document.createElement('select');
         sel.multiple = true; sel.style.width = '100%';
+        sel.disabled = isSystem;                   // ← disable if system
         metaTypes.forEach(mt => {
           const o = new Option(mt.name, mt.id);
           o.selected = r.type_IDs.includes(mt.id);
@@ -718,6 +721,7 @@ function renderSchema() {
     (() => {
       const td = document.createElement('td');
       const sel = document.createElement('select');
+      sel.disabled = isSystem;                  // ← disable if system
       dataTypeOptions.forEach(opt => {
         const o = new Option(opt, opt);
         o.selected = r.dataType === opt;
@@ -737,6 +741,7 @@ function renderSchema() {
     (() => {
       const td = document.createElement('td');
       const sel = document.createElement('select');
+      sel.disabled = isSystem;                   // ← disable if system
       widgetsByDataType[r.dataType].forEach(opt => {
         const o = new Option(opt, opt);
         o.selected = r.widget === opt;
@@ -758,6 +763,7 @@ function renderSchema() {
       btn.type = 'button';
       btn.className = 'btn btn-outline-secondary btn-sm';
       btn.textContent = '?';
+      btn.disabled = isSystem;                // ← disable if system
       btn.addEventListener('click', () => {
         alert(`${r.widget}:\n\n${widgetHelpText[r.widget] || 'No help.'}`);
       });
@@ -775,6 +781,7 @@ function renderSchema() {
         optIn.className   = 'form-control form-control-sm';
         optIn.value       = (r.options || []).join(',');
         optIn.placeholder = widgetHelpText[r.widget] || '';
+        optIn.disabled = isSystem;                 // ← disable if system
         optIn.addEventListener('change', e => {
           r.options = e.target.value
                         .split(',')
@@ -801,6 +808,7 @@ function renderSchema() {
       const inp = document.createElement('input');
       inp.type  = 'text';
       inp.value = r.group;
+      inp.disabled = isSystem;                // ← disable if system
       inp.addEventListener('change', e => { r.group = e.target.value; });
       td.appendChild(inp);
       tr.appendChild(td);
@@ -810,6 +818,7 @@ function renderSchema() {
     (() => {
       const td = document.createElement('td');
       const sel = document.createElement('select');
+      sel.disabled = isSystem;               // ← disable if system
       layoutOptions.forEach(opt => {
         const o = new Option(opt, opt);
         o.selected = r.layout === opt;
@@ -837,6 +846,7 @@ function renderSchema() {
       const btn = document.createElement('button');
       btn.className = 'btn btn-danger';
       btn.textContent = 'Delete';
+      btn.disabled = isSystem;                 // ← disable if system
       btn.addEventListener('click', () => {
         schemaRows.splice(i, 1);
         renderSchema();
@@ -905,41 +915,60 @@ function renderPreviewForm() {
   const form   = document.getElementById('previewForm');
   form.innerHTML = '';
 
-  // Group attributes by “group”, skipping hidden layouts
+   // --- Render the meta‐type name & ID at the top ---
+  const mt = metaTypes.find(mt => mt.id === typeId) || {};
+  const headerDiv = document.createElement('div');
+  headerDiv.className = 'mb-4';
+
+  // Type name as primary heading
+  const nameEl = document.createElement('h4');
+  nameEl.textContent = mt.name || '';
+  headerDiv.appendChild(nameEl);
+
+  // ID as secondary, grey label
+  const idEl = document.createElement('small');
+  idEl.className = 'text-secondary';
+  idEl.textContent = `ID: ${mt.id || ''}`;
+  headerDiv.appendChild(idEl);
+
+  form.appendChild(headerDiv);
+
+  // --- Group attributes by “group”, but skip id & object_type entirely ---
   const grouped = {};
   schemaRows.forEach(r => {
+      // 1) Don’t group the header fields
+      if (r.name === 'id' || r.name === 'object_type') return;
+
+      // 2) Only include fields for this type and not hidden
     if (!r.type_IDs.includes(typeId) || r.layout === 'hidden') return;
     const grp = r.group || 'Default';
-    (grouped[grp] = grouped[grp]||[]).push(r);
+    (grouped[grp] = grouped[grp] || []).push(r);
   });
 
-  // Build the accordion
+  // 2) Build accordion
   const accordion = document.createElement('div');
   accordion.className = 'accordion';
-  accordion.id        = 'previewAccordion';
+  accordion.id = 'previewAccordion';
 
-  let groupCount = 0;
-  Object.entries(grouped).forEach(([groupName, fields]) => {
-    const groupId = `group${groupCount++}`;
+  Object.entries(grouped).forEach(([groupName, fields], gIdx) => {
+    const groupId = `group${gIdx}`;
+    const forceFullWidth = fields.length === 1;  // <-- our tweak
 
-    // Accordion item & header
-    const item   = document.createElement('div');
-    item.className = 'accordion-item';
-
-    const header = document.createElement('h2');
-    header.className = 'accordion-header';
-    const btn = document.createElement('button');
-    btn.className = `accordion-button${groupCount>1?' collapsed':''}`;
-    btn.type = 'button';
+    // Accordion header...
+    const item     = document.createElement('div'); item.className = 'accordion-item';
+    const header   = document.createElement('h2');  header.className = 'accordion-header';
+    const btn      = document.createElement('button');
+    btn.className  = `accordion-button${gIdx>0?' collapsed':''}`;
+    btn.type       = 'button';
     btn.setAttribute('data-bs-toggle','collapse');
     btn.setAttribute('data-bs-target',`#collapse-${groupId}`);
-    btn.innerText = `Group: ${groupName}`;
+    btn.innerText  = `Group: ${groupName}`;
     header.appendChild(btn);
 
-    // Collapsible body
+    // Accordion body...
     const collapse = document.createElement('div');
-    collapse.id = `collapse-${groupId}`;
-    collapse.className = `accordion-collapse collapse${groupCount===1?' show':''}`;
+    collapse.id    = `collapse-${groupId}`;
+    collapse.className = `accordion-collapse collapse${gIdx===0?' show':''}`;
     collapse.setAttribute('data-bs-parent','#previewAccordion');
 
     const body = document.createElement('div');
@@ -947,29 +976,39 @@ function renderPreviewForm() {
     const row  = document.createElement('div');
     row.className = 'row g-3';
 
-    // Render each field in this group
+    // 3) Render each field
     fields.forEach(r => {
       const col = document.createElement('div');
-      // Map layout to Bootstrap cols
-      switch (r.layout) {
+
+      // ---- HERE: use forceFullWidth to override lone fields ----
+      const layoutKey = forceFullWidth ? 'full-width' : r.layout;
+      switch (layoutKey) {
         case 'half-left':
         case 'half-right':
-          col.className = 'col-md-6'; break;
+          col.className = 'col-md-6';
+          break;
         case 'one-third':
-          col.className = 'col-md-4'; break;
+          col.className = 'col-md-4';
+          break;
         case 'two-thirds':
-          col.className = 'col-md-8'; break;
+          col.className = 'col-md-8';
+          break;
         case 'quarter':
-          col.className = 'col-md-3'; break;
+          col.className = 'col-md-3';
+          break;
         case 'three-quarters':
-          col.className = 'col-md-9'; break;
+          col.className = 'col-md-9';
+          break;
         case 'inline':
         case 'auto':
-          col.className = 'col-auto'; break;
+          col.className = 'col-auto';
+          break;
         default:
           col.className = 'col-12';
       }
 
+
+      // ---- rest of your existing field rendering ----
       const wrapper = document.createElement('div');
       wrapper.className = r.widget === 'checkbox'
         ? 'form-check form-switch mt-2'
@@ -981,7 +1020,6 @@ function renderPreviewForm() {
         ? 'form-check-label ms-2'
         : 'form-label';
       label.textContent = r.label || r.name;
-
       let input;
 
       switch (r.widget) {
@@ -1231,7 +1269,7 @@ case 'multi-select':
   });
 
   form.appendChild(accordion);
-}
+} // End of Renderpreview
 
 
   // ── SAVE ALL BUTTON ─────────────────────────────────────────────────
