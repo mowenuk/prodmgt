@@ -365,119 +365,298 @@
 
 
 <script>
-const quillEditors = {};
+  // ── GLOBAL STATE & CONSTANTS ─────────────────────────────────────────
+  const quillEditors = {};
 
-// Generic Bootstrap colour map
-const BS_COLOR_MAP = {
-  primary:   'primary',
-  secondary: 'secondary',
-  success:   'success',
-  danger:    'danger',
-  warning:   'warning',
-  info:      'info',
-  light:     'light',
-  dark:      'dark',
-  // common synonyms → contexts
-  blue:      'primary',
-  grey:      'secondary',
-  gray:      'secondary',
-  green:     'success',
-  red:       'danger',
-  yellow:    'warning',
-  teal:      'info',
-  white:     'light',
-  black:     'dark'
-};
+  const BS_COLOR_MAP = {
+    primary:   'primary',   secondary: 'secondary',
+    success:   'success',   danger:    'danger',
+    warning:   'warning',   info:      'info',
+    light:     'light',     dark:      'dark',
+    blue:      'primary',   grey:      'secondary',
+    gray:      'secondary', green:     'success',
+    red:       'danger',    yellow:    'warning',
+    teal:      'info',      white:     'light',
+    black:     'dark'
+  };
 
+  let metaTypes   = [],
+      metaRels    = [],
+      schemaRows  = [];
 
-  let schemaRows = [], metaTypes = [], metaRels = [];
   const dataTypeOptions = ['short text','long text','integer','date','percentage','boolean'];
-  // map each data type to its allowed widgets
-const widgetsByDataType = {
-  'short text':   ['text input','select', 'single select', 'multi-select'],
-  'long text':    ['textarea','rich text'],
-  'integer':      ['number','spinner','stepper','range slider'],
-  'date':         ['date picker','time picker','month picker','week picker'],
-  'percentage':   ['progress bar','editable progress bar','dial gauge'],
-  'boolean':      ['checkbox','radio group','toggle buttons'],
-  // you can add more data types here...
-};
 
-// help text for each widget (displayed when user clicks “?”)
-// User-focused help text
-const widgetHelpText = {
-  'range slider':           'User enters min,max,step (e.g. 0,100,10).',
-  'stepper':                'User enters min,max,step (e.g. 0,10,1).',
-  'radio group':            'Enter choices comma-separated (e.g. High,Medium,Low).',
-  'toggle buttons':         'Enter choices comma-separated (e.g. On,Off).',
-  'select':                 'Enter choices comma-separated (e.g. Red,Green,Blue).',
-  'single select':          'Enter choices comma-separated (e.g. Small,Medium,Large).',
-  'multi-select':           'Enter choices comma-separated (e.g. Apple,Banana,Cherry).',
-  'editable progress bar':  'Enter initialValue,max (e.g. 50,100).',
-  'dial gauge':             'Enter min,max (e.g. 0,360).',
-  'text input':             'For a prefix or suffix, use "Before:symbol, placeholder" or "After:symbol, placeholder". E.g. Before:@, Username or After:.com, your email.',
-    'progress bar':           'Enter segments as "percentage: Label: Color", separated by commas. ' +
-  'E.g. 40: Free Space: success, 10: Warning: warning, 20: Danger: danger.  Numbers create a width only, width and label produce a labeled bar.',
-  'spinner' :                'For a prefix or suffix, use "Before:symbol, placeholder" or "After:symbol, placeholder". E.g. Before:£, Amount GBP.',
-  'rich text':  'This uses Quill for rich-text editing but only the plain text is stored in CSV. ' +
-  'Enter your default text here; it will load straight into the editor.',
-  // everything else:
-  'textarea':               'No user options needed.',
-  'date picker':            'No user options needed.',
-  'time picker':            'No user options needed.',
-
-  'month picker':           'No user options needed.',
-  'week picker':            'No user options needed.',
-
-  'checkbox':               'No user options needed.'
-};
-  const widgetOptions = ['text input','textarea','spinner','date picker','progress bar','checkbox','slider','select','single select','multi-select'];
+  const widgetsByDataType = {
+    'short text':   ['text input','select','single select','multi-select'],
+    'long text':    ['textarea','rich text'],
+    'integer':      ['text input','spinner','stepper','range slider'],
+    'date':         ['date picker','time picker','month picker','week picker'],
+    'percentage':   ['progress bar','editable progress bar','dial gauge'],
+    'boolean':      ['checkbox','radio group','toggle buttons']
+  };
+  const widgetHelpText = {
+    'text input': 'For prefix/suffix use "Before:symbol, placeholder" or "After:symbol, placeholder".',
+    'spinner':    'For prefix/suffix use "Before:symbol, placeholder" or "After:symbol, placeholder".',
+    'range slider': 'Enter min,max,step (e.g. 0,100,10).',
+    'stepper':      'Enter min,max,step (e.g. 0,10,1).',
+    'radio group':  'Enter choices comma-separated (e.g. High,Medium,Low).',
+    'toggle buttons': 'Enter choices comma-separated (e.g. On,Off).',
+    'select':        'Enter choices comma-separated (e.g. Red,Green,Blue).',
+    'single select': 'Enter choices comma-separated (e.g. Small,Medium,Large).',
+    'multi-select':  'Enter choices comma-separated (e.g. Apple,Banana,Cherry).',
+    'progress bar':  'Enter "value:Label:Color" segments + optional "Max:N".',
+    'editable progress bar': 'Enter initialValue,max (e.g. 50,100).',
+    'dial gauge':   'Enter min,max (e.g. 0,360).',
+    'rich text':    'Quill editor; plain text is saved in CSV.',
+  };
+  const userOptionWidgets = [
+    'text input','spinner','range slider','stepper',
+    'radio group','toggle buttons','select','single select',
+    'multi-select','editable progress bar','dial gauge',
+    'progress bar'
+  ];
   const layoutOptions = [
-  'full-width',
-  'half-left',
-  'half-right',
-  'one-third',
-  'two-thirds',
-  'quarter',
-  'three-quarters',
-  'inline',
-  'auto',
-  'hidden'
-];
-// Only these widgets require the user to supply “options” (e.g. enum values or ranges)
-const userOptionWidgets = [
-  'text input',
-  'spinner',
-  'range slider',
-  'stepper',
-  'radio group',
-  'toggle buttons',
-  'select',
-  'single select',
-  'multi-select',
-  'editable progress bar',
-  'dial gauge',
-  'progress bar'
-];
+    'full-width','half-left','half-right','one-third','two-thirds',
+    'quarter','three-quarters','inline','auto','hidden'
+  ];
 
-  // Tab switching
-  document.querySelectorAll('.tab').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('.tab, .tab-content').forEach(el => el.classList.remove('active'));
-      tab.classList.add('active');
-      document.getElementById(tab.dataset.tab).classList.add('active');
-      if (tab.dataset.tab === 'previewTab') { updatePreviewTypeSelect(); renderPreviewForm(); }
-      if (tab.dataset.tab === 'relsTab') { populateRelsFilter(); renderRels(); }
-      if (tab.dataset.tab === 'typesTab') { renderTypes(); }
-      if (tab.dataset.tab === 'schemaTab') { renderSchema(); }
-    });
+  // ── CSV SAVE HELPER ─────────────────────────────────────────────────
+  function saveCSV(data, filename, columns) {
+    const csv  = Papa.unparse(data, { columns });
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ── autoLoadCSV & dataset loading ────────────────────────────────────
+  function autoLoadCSV(url, callback) {
+    fetch(url)
+      .then(r => { if (!r.ok) throw new Error(`Failed to fetch ${url}`); return r.text(); })
+      .then(txt => Papa.parse(txt, { header: true, skipEmptyLines: true, complete: res => callback(res.data) }))
+      .catch(err => console.error(err));
+  }
+  const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/mowenuk/prodmgt/main/meta-models/';
+  function getFilename(base, prefix='') {
+    return `${GITHUB_RAW_BASE}${prefix ? prefix + '_' : ''}${base}`;
+  }
+  function loadDataset(prefix='') {
+    autoLoadCSV(getFilename('meta-objects.csv', prefix), loadTypesFromData);
+    autoLoadCSV(getFilename('rels_meta-objects.csv', prefix), loadRelsFromData);
+    autoLoadCSV(getFilename('meta-object-properties.csv', prefix), loadSchemaFromData);
+  }
+  document.getElementById('reloadDatasetBtn').addEventListener('click', () => {
+    const prefix = document.getElementById('datasetSelector').value === 'togaf' ? 'togaf' : '';
+    loadDataset(prefix);
   });
+  window.addEventListener('DOMContentLoaded', () => loadDataset());
 
+  // ── TYPE CRUD ───────────────────────────────────────────────────────
+  function renderTypes() {
+    const tbody = document.getElementById('typesBody');
+    tbody.innerHTML = '';
+    metaTypes.forEach((t,i) => {
+      const tr = document.createElement('tr');
+      // ID
+      const idTd = document.createElement('td');
+      const idIn = document.createElement('input');
+      idIn.value = t.id; idIn.disabled = true;
+      idTd.appendChild(idIn); tr.appendChild(idTd);
+      // Name
+      const nmTd = document.createElement('td');
+      const nmIn = document.createElement('input');
+      nmIn.value = t.name; nmIn.onchange = e => t.name = e.target.value;
+      nmTd.appendChild(nmIn); tr.appendChild(nmTd);
+      // Description
+      const dsTd = document.createElement('td');
+      const dsIn = document.createElement('input');
+      dsIn.value = t.description; dsIn.onchange = e => t.description = e.target.value;
+      dsTd.appendChild(dsIn); tr.appendChild(dsTd);
+      // System
+      const syTd = document.createElement('td');
+      const syCb = document.createElement('input');
+      syCb.type = 'checkbox'; syCb.checked = t.system;
+      syCb.onchange = e => t.system = e.target.checked;
+      syTd.appendChild(syCb); tr.appendChild(syTd);
+      // Actions
+      const acTd = document.createElement('td');
+      const del = document.createElement('button');
+      del.className = 'btn btn-danger'; del.textContent = 'Delete';
+      del.onclick = () => { metaTypes.splice(i,1); renderTypes(); };
+      acTd.appendChild(del); tr.appendChild(acTd);
 
+      tbody.appendChild(tr);
+    });
+  }
+  document.getElementById('loadTypesBtn').addEventListener('click', () => {
+    const f = document.getElementById('typesFile').files[0];
+    if (!f) return;
+    Papa.parse(f,{ header:true, skipEmptyLines:true, complete:res => {
+      metaTypes = res.data.map(r => ({
+        id: r.id,
+        name: r.name,
+        description: r.description,
+        system: String(r.system||'').toLowerCase()==='true'
+      }));
+      renderTypes();
+    }});
+  });
+  document.getElementById('addTypeBtn').addEventListener('click', () => {
+    const maxId = metaTypes.reduce((m,t)=>Math.max(m,parseInt(t.id)||0),0);
+    metaTypes.push({ id:String(maxId+1), name:'', description:'', system:false });
+    renderTypes();
+  });
+  document.getElementById('downloadTypesBtn').addEventListener('click', () => {
+    saveCSV(metaTypes, 'meta-objects.csv', ['id','name','description','system']);
+  });
+  function loadTypesFromData(data) {
+    metaTypes = data.map(r => ({
+      id: r.id,
+      name: r.name,
+      description: r.description,
+      system: String(r.system||'').toLowerCase()==='true'
+    }));
+    renderTypes();
+  }
 
+  // ── RELATIONSHIPS CRUD ─────────────────────────────────────────────────
+  function populateRelsFilter() {
+    const sel = document.getElementById('relsFilterSelect');
+    sel.innerHTML = '';
+    metaTypes.forEach(mt => sel.appendChild(new Option(mt.name,mt.id)));
+    sel.onchange = renderRels;
+  }
+  function renderRels() {
+    const fromId = document.getElementById('relsFilterSelect').value;
+    const tbody = document.getElementById('relsBody');
+    tbody.innerHTML = '';
+    metaRels.filter(r=>r.fromMetaObjectID===fromId).forEach((r,i) => {
+      const tr = document.createElement('tr');
+      // ID
+      const idTd = document.createElement('td');
+      idTd.textContent = r.id; tr.appendChild(idTd);
+      // Name
+      const nmTd = document.createElement('td');
+      const nmIn = document.createElement('input');
+      nmIn.value = r.name; nmIn.onchange = e=>r.name=e.target.value;
+      nmTd.appendChild(nmIn); tr.appendChild(nmTd);
+      // Reverse Name
+      const rvTd = document.createElement('td');
+      const rvIn = document.createElement('input');
+      rvIn.value = r.reverseName; rvIn.onchange = e=>r.reverseName=e.target.value;
+      rvTd.appendChild(rvIn); tr.appendChild(rvTd);
+      // Label
+      const lbTd = document.createElement('td');
+      const lbIn = document.createElement('input');
+      lbIn.value = r.label; lbIn.onchange = e=>r.label=e.target.value;
+      lbTd.appendChild(lbIn); tr.appendChild(lbTd);
+      // From
+      tr.appendChild(Object.assign(document.createElement('td'),{textContent:r.fromMetaObjectID}));
+      // To
+      const toTd = document.createElement('td');
+      const toSel = document.createElement('select');
+      metaTypes.forEach(mt => {
+        const o = new Option(mt.name,mt.id,false,r.toMetaObjectID===mt.id);
+        toSel.appendChild(o);
+      });
+      toSel.onchange = e=>r.toMetaObjectID=e.target.value;
+      toTd.appendChild(toSel); tr.appendChild(toTd);
+      // System
+      const syTd2 = document.createElement('td');
+      const syCb2 = document.createElement('input');
+      syCb2.type='checkbox'; syCb2.checked=r.system;
+      syCb2.onchange=e=>r.system=e.target.checked;
+      syTd2.appendChild(syCb2); tr.appendChild(syTd2);
+      // Actions
+      const acTd2 = document.createElement('td');
+      const del2 = document.createElement('button');
+      del2.className='btn btn-danger'; del2.textContent='Delete';
+      del2.onclick=()=>{ metaRels.splice(i,1); renderRels(); };
+      acTd2.appendChild(del2); tr.appendChild(acTd2);
 
-    // Schema CRUD
- 
+      tbody.appendChild(tr);
+    });
+  }
+  document.getElementById('loadRelsBtn').addEventListener('click', () => {
+    const f = document.getElementById('relsFile').files[0];
+    if (!f) return;
+    Papa.parse(f,{ header:true, skipEmptyLines:true, complete:res => {
+      metaRels = res.data.map(r=>({
+        id: r.id,
+        name: r.name,
+        reverseName: r.reverseName||r.reversename||'',
+        label: r.label,
+        fromMetaObjectID: r.fromMetaObjectID,
+        toMetaObjectID: r.toMetaObjectID,
+        system: String(r.system||'').toLowerCase()==='true'
+      }));
+      populateRelsFilter();
+      renderRels();
+    }});
+  });
+  document.getElementById('addRelBtn').addEventListener('click', () => {
+    if (!metaTypes.length) return alert('Load types first');
+    const fromId = document.getElementById('relsFilterSelect').value;
+    const maxId = metaRels.reduce((m,r)=>Math.max(m,parseInt(r.id)||0),0);
+    metaRels.push({
+      id: String(maxId+1), name:'', reverseName:'', label:'',
+      fromMetaObjectID: fromId,
+      toMetaObjectID:   metaTypes[0].id,
+      system: false
+    });
+    renderRels();
+  });
+  document.getElementById('downloadRelsBtn').addEventListener('click', () => {
+    const out = metaRels.map(r=>({
+      id: r.id, name: r.name, reverseName: r.reverseName,
+      label: r.label, fromMetaObjectID: r.fromMetaObjectID,
+      toMetaObjectID: r.toMetaObjectID, system: r.system
+    }));
+    saveCSV(out,'rels_meta-objects.csv',[
+      'id','name','reverseName','label',
+      'fromMetaObjectID','toMetaObjectID','system'
+    ]);
+  });
+  function loadRelsFromData(data) {
+    metaRels = data.map(r=>({
+      id: r.id, name: r.name,
+      reverseName: r.reverseName||r.reversename||'',
+      label: r.label, fromMetaObjectID: r.fromMetaObjectID,
+      toMetaObjectID: r.toMetaObjectID,
+      system: String(r.system||'').toLowerCase()==='true'
+    }));
+    populateRelsFilter();
+    renderRels();
+  }
+
+  // ── SCHEMA: LOAD, RENDER, EDIT, SAVE ─────────────────────────────────
+  function loadSchemaFromData(data) {
+    schemaRows = data.map(r => ({
+      id:        r.id,
+      name:      r.name,
+      label:     r.label,
+      type_IDs:  (r.type_IDs||'').split(',').map(s=>s.trim()),
+      dataType:  r.dataType,
+      widget:    r.widget,
+      options: (r.options||'').split(',').map(s=>s.trim()),
+      group:     r.group||'',
+      layout:    r.layout||'full-width',
+      system:    String(r.system||'').toLowerCase()==='true'
+    }));
+    renderSchema();
+  }
+  document.getElementById('loadSchemaBtn').addEventListener('click', () => {
+    const f = document.getElementById('schemaFile').files[0];
+    if (!f) return;
+    Papa.parse(f,{ header:true, skipEmptyLines:true, complete:res => {
+      loadSchemaFromData(res.data);
+    }});
+  });
 function renderSchema() {
   const tbody = document.getElementById('schemaBody');
   tbody.innerHTML = '';
@@ -485,276 +664,242 @@ function renderSchema() {
   schemaRows.forEach((r, i) => {
     const tr = document.createElement('tr');
 
-    // --- ID (read-only) ---
-    const idTd = document.createElement('td');
-    const idIn = document.createElement('input');
-    idIn.type = 'text';
-    idIn.value = r.id;
-    idIn.disabled = true;
-    idTd.appendChild(idIn);
-    tr.appendChild(idTd);
+    // ───── ID ─────────────────────────────────────
+    (() => {
+      const td = document.createElement('td');
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.value = r.id; inp.disabled = true;
+      td.appendChild(inp);
+      tr.appendChild(td);
+    })();
 
-    // --- Name ---
-    const nameTd = document.createElement('td');
-    const nameIn = document.createElement('input');
-    nameIn.type = 'text';
-    nameIn.value = r.name;
-    nameIn.onchange = e => r.name = e.target.value;
-    nameTd.appendChild(nameIn);
-    tr.appendChild(nameTd);
+    // ───── Name ───────────────────────────────────
+    (() => {
+      const td = document.createElement('td');
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.value = r.name;
+      inp.addEventListener('change', e => r.name = e.target.value);
+      td.appendChild(inp);
+      tr.appendChild(td);
+    })();
 
-    // --- Label ---
-    const labelTd = document.createElement('td');
-    const labelIn = document.createElement('input');
-    labelIn.type = 'text';
-    labelIn.value = r.label;
-    labelIn.onchange = e => r.label = e.target.value;
-    labelTd.appendChild(labelIn);
-    tr.appendChild(labelTd);
+    // ───── Label ──────────────────────────────────
+    (() => {
+      const td = document.createElement('td');
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.value = r.label;
+      inp.addEventListener('change', e => r.label = e.target.value);
+      td.appendChild(inp);
+      tr.appendChild(td);
+    })();
 
-    // --- Types (multi-select of loaded metaTypes) ---
-    const typesTd = document.createElement('td');
-    if (metaTypes.length > 0) {
+    // ───── Types (multi) ──────────────────────────
+    (() => {
+      const td = document.createElement('td');
+      if (metaTypes.length) {
+        const sel = document.createElement('select');
+        sel.multiple = true; sel.style.width = '100%';
+        metaTypes.forEach(mt => {
+          const o = new Option(mt.name, mt.id);
+          o.selected = r.type_IDs.includes(mt.id);
+          sel.appendChild(o);
+        });
+        sel.addEventListener('change', () => {
+          r.type_IDs = Array.from(sel.selectedOptions).map(o => o.value);
+        });
+        td.appendChild(sel);
+      } else {
+        td.textContent = r.type_IDs.join(',');
+      }
+      tr.appendChild(td);
+    })();
+
+    // ───── DataType ───────────────────────────────
+    (() => {
+      const td = document.createElement('td');
       const sel = document.createElement('select');
-      sel.multiple = true;
-      sel.style.width = '100%';
-      metaTypes.forEach(mt => {
-        const opt = document.createElement('option');
-        opt.value = mt.id;
-        opt.textContent = mt.name;
-        if (r.type_IDs.includes(mt.id)) opt.selected = true;
-        sel.appendChild(opt);
+      dataTypeOptions.forEach(opt => {
+        const o = new Option(opt, opt);
+        o.selected = r.dataType === opt;
+        sel.appendChild(o);
       });
-      sel.onchange = () => {
-        r.type_IDs = Array.from(sel.selectedOptions).map(o => o.value);
-      };
-      typesTd.appendChild(sel);
-    } else {
-      typesTd.textContent = r.type_IDs.join(',');
-    }
-    tr.appendChild(typesTd);
+      sel.addEventListener('change', () => {
+        r.dataType = sel.value;
+        // reset widget to first for this type
+        r.widget = widgetsByDataType[r.dataType][0];
+        renderSchema();
+      });
+      td.appendChild(sel);
+      tr.appendChild(td);
+    })();
 
-    // --- Data Type (single select) ---
-    const dtTd = document.createElement('td');
-    const dtSel = document.createElement('select');
-    dataTypeOptions.forEach(optText => {
-      const opt = document.createElement('option');
-      opt.value = optText;
-      opt.textContent = optText;
-      if (r.dataType === optText) opt.selected = true;
-      dtSel.appendChild(opt);
-    });
-    // When dataType changes, update both the model and the widget cell
-dtSel.onchange = e => {
-  r.dataType = e.target.value;
-  renderSchema();   // simplest: redraw the whole table so widget lists update
-};
-    dtTd.appendChild(dtSel);
-    tr.appendChild(dtTd);
+    // ───── Widget ──────────────────────────────────
+    (() => {
+      const td = document.createElement('td');
+      const sel = document.createElement('select');
+      widgetsByDataType[r.dataType].forEach(opt => {
+        const o = new Option(opt, opt);
+        o.selected = r.widget === opt;
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', () => {
+        r.widget = sel.value;
+        // do NOT clear r.options here
+        renderSchema();
+      });
+      td.appendChild(sel);
+      tr.appendChild(td);
+    })();
 
-// --- Widget (single select) ---
-const wTd = document.createElement('td');
-const wSel = document.createElement('select');
-const allowed = widgetsByDataType[r.dataType] || [];
-allowed.forEach(optText => {
-  const opt = document.createElement('option');
-  opt.value       = optText;
-  opt.textContent = optText;
-  if (r.widget === optText) opt.selected = true;
-  wSel.appendChild(opt);
-});
-// on change: update the model *and* re-render the whole table
-wSel.onchange = e => {
-  r.widget = e.target.value;
-  renderSchema();    // ← this redraws every row, so Options will now mask/unmask correctly
-};
-wTd.appendChild(wSel);
-tr.appendChild(wTd);
+    // ───── Help ────────────────────────────────────
+    (() => {
+      const td = document.createElement('td');
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'btn btn-outline-secondary btn-sm';
+      btn.textContent = '?';
+      btn.addEventListener('click', () => {
+        alert(`${r.widget}:\n\n${widgetHelpText[r.widget] || 'No help.'}`);
+      });
+      td.appendChild(btn);
+      tr.appendChild(td);
+    })();
 
-// --- Widget Help (button) ---
-const helpTd = document.createElement('td');
-const helpBtn = document.createElement('button');
-helpBtn.type = 'button';
-helpBtn.className = 'btn btn-outline-secondary btn-sm';
-helpBtn.textContent = '?';
-helpBtn.onclick = () => {
-  const help = widgetHelpText[r.widget] || 'No help available for this widget.';
-  alert(`${r.widget}:\n\n${help}`);
-};
-helpTd.appendChild(helpBtn);
-tr.appendChild(helpTd);
+    // ───── Options ─────────────────────────────────
+    (() => {
+      const optTd = document.createElement('td');
+      if (userOptionWidgets.includes(r.widget)) {
+        // text input for comma-separated options
+        const optIn = document.createElement('input');
+        optIn.type        = 'text';
+        optIn.className   = 'form-control form-control-sm';
+        optIn.value       = (r.options || []).join(',');
+        optIn.placeholder = widgetHelpText[r.widget] || '';
+        optIn.addEventListener('change', e => {
+          r.options = e.target.value
+                        .split(',')
+                        .map(s => s.trim())
+                        .filter(s => s);
+        });
+        optTd.appendChild(optIn);
 
+        // inline help text
+        const hint = document.createElement('div');
+        hint.className   = 'form-text text-muted small';
+        hint.textContent = widgetHelpText[r.widget] || '';
+        optTd.appendChild(hint);
+      } else {
+        // no options for this widget
+        optTd.textContent = '—';
+      }
+      tr.appendChild(optTd);
+    })();
 
-// --- Options (user-defined only) ---
-const optTd = document.createElement('td');
-if ( userOptionWidgets.includes(r.widget) ) {
-  const optIn = document.createElement('input');
-  optIn.type        = 'text';
-  optIn.value       = r.options.join(',');
-  optIn.placeholder = widgetHelpText[r.widget] || '';
-  optIn.onchange    = e => {
-    r.options = e.target.value
-                  .split(',')
-                  .map(s => s.trim())
-                  .filter(s => s);
-  };
-  optTd.appendChild(optIn);
-} else {
-  optTd.textContent = '—';
-}
-tr.appendChild(optTd);
+    // ───── Group ────────────────────────────────────
+    (() => {
+      const td = document.createElement('td');
+      const inp = document.createElement('input');
+      inp.type  = 'text';
+      inp.value = r.group;
+      inp.addEventListener('change', e => { r.group = e.target.value; });
+      td.appendChild(inp);
+      tr.appendChild(td);
+    })();
 
-    
-    
-// --- Group ---
-const groupTd = document.createElement('td');
-const groupIn = document.createElement('input');
-groupIn.type = 'text';
-groupIn.value = r.group || '';
-groupIn.onchange = e => r.group = e.target.value;
-groupTd.appendChild(groupIn);
-tr.appendChild(groupTd);
+    // ───── Layout ───────────────────────────────────
+    (() => {
+      const td = document.createElement('td');
+      const sel = document.createElement('select');
+      layoutOptions.forEach(opt => {
+        const o = new Option(opt, opt);
+        o.selected = r.layout === opt;
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', e => { r.layout = sel.value; });
+      td.appendChild(sel);
+      tr.appendChild(td);
+    })();
 
-// --- Layout ---
-const layoutTd = document.createElement('td');
-const layoutSel = document.createElement('select');
-// new:
-layoutOptions.forEach(optText => {
-  const opt = document.createElement('option');
-  opt.value   = optText;
-  opt.textContent = optText;
-  if (r.layout === optText) opt.selected = true;
-  layoutSel.appendChild(opt);
-});
+    // ───── System ───────────────────────────────────
+    (() => {
+      const td = document.createElement('td');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = r.system;
+      cb.addEventListener('change', e => { r.system = cb.checked; });
+      td.appendChild(cb);
+      tr.appendChild(td);
+    })();
 
-layoutSel.onchange = e => r.layout = e.target.value;
-layoutTd.appendChild(layoutSel);
-tr.appendChild(layoutTd);
-
-    // --- System (checkbox) ---
-    const sysTd = document.createElement('td');
-    const sysCb = document.createElement('input');
-    sysCb.type = 'checkbox';
-    sysCb.checked = r.system;
-    sysCb.onchange = e => r.system = e.target.checked;
-    sysTd.appendChild(sysCb);
-    tr.appendChild(sysTd);
-
-    // --- Actions (Delete) ---
-    const actTd = document.createElement('td');
-    const delBtn = document.createElement('button');
-    delBtn.className = 'btn btn-danger';
-    delBtn.textContent = 'Delete';
-    delBtn.onclick = () => { schemaRows.splice(i, 1); renderSchema(); };
-    actTd.appendChild(delBtn);
-    tr.appendChild(actTd);
+    // ───── Actions ──────────────────────────────────
+    (() => {
+      const td = document.createElement('td');
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-danger';
+      btn.textContent = 'Delete';
+      btn.addEventListener('click', () => {
+        schemaRows.splice(i, 1);
+        renderSchema();
+      });
+      td.appendChild(btn);
+      tr.appendChild(td);
+    })();
 
     tbody.appendChild(tr);
   });
 }
 
-  document.getElementById('loadSchemaBtn').addEventListener('click', () => {
-    const file = document.getElementById('schemaFile').files[0];
-    if (!file) return;
-    Papa.parse(file, {
-      header: true,
-      skipEmptyLines: true,
-complete: res => {
-  schemaRows = res.data.map(r => ({
-    id:        r.id,
-    name:      r.name,
-    label:     r.label,
-    type_IDs:  (r.type_IDs||'').split(',').map(s=>s.trim()),
-    dataType:  r.dataType,
-    widget:    r.widget,
-    options:   (r.options||'').split(',').map(s=>s.trim()),
-    group:     r.group     || '',
-    layout:    r.layout    || 'full-width',
-    system:    String(r.system||'').toLowerCase()==='true'
-  }));
-  renderSchema();
-}
 
+  document.getElementById('downloadSchemaBtn').addEventListener('click', () => {
+    schemaRows.forEach(r => {
+      if (r.widget==='rich text' && quillEditors[r.id]) {
+        r.options = [ quillEditors[r.id].getText().trim() ];
+      }
     });
+    const out = schemaRows.map(r=>({
+      id:        r.id,      name:     r.name,
+      label:     r.label,   type_IDs: r.type_IDs.join(','),
+      dataType:  r.dataType, widget:   r.widget,
+      options:   r.options.join(','), group:    r.group,
+      layout:    r.layout,  system:   r.system
+    }));
+    saveCSV(out,'meta-object-properties.csv',[
+      'id','name','label','type_IDs',
+      'dataType','widget','options','group','layout','system'
+    ]);
   });
-
- document.getElementById('downloadSchemaBtn').addEventListener('click', () => {
-  schemaRows.forEach(r => {
-  if (r.widget === 'rich text' && quillEditors[r.id]) {
-    // grab only the plain text, drop HTML markup
-    r.options = [ quillEditors[r.id].getText().trim() ];
-  }
-});
-  const out = schemaRows.map(r => ({
-    id:        r.id,
-    name:      r.name,
-    label:     r.label,
-    type_IDs:  r.type_IDs.join(','),
-    dataType:  r.dataType,
-    widget:    r.widget,
-    options:   r.options.join(','),
-    group:     r.group || '',
-    layout:    r.layout || 'full-width',
-    system:    r.system
-  }));
-  const csv = Papa.unparse(out, {
-    columns: [
-      'id','name','label','type_IDs','dataType','widget',
-      'options','group','layout','system'
-    ]
-  });
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'meta-object-properties.csv';
-    a.click();
-    URL.revokeObjectURL(url);
-  });
-  
-  // Add a new, blank attribute
   document.getElementById('addSchemaBtn').addEventListener('click', () => {
-    // compute next numeric ID
-    const maxId = schemaRows.reduce((m, r) => Math.max(m, parseInt(r.id,10) || 0), 0);
-    const nextId = (maxId + 1).toString();
+    const maxId = schemaRows.reduce((m,r)=>Math.max(m,parseInt(r.id)||0),0);
     schemaRows.push({
-      id: nextId,
-      name: '',
-      label: '',
-      type_IDs: [],           // no types selected yet
-      dataType: dataTypeOptions[0],
-      widget: widgetOptions[0],
-      options: [],
-      system: false
+      id: String(maxId+1),
+      name:'', label:'', type_IDs:[], dataType:dataTypeOptions[0],
+      widget: widgetsByDataType[dataTypeOptions[0]][0],
+      options:[], group:'', layout:'full-width', system:false
     });
     renderSchema();
   });
 
-
-  // Preview
-function updatePreviewTypeSelect() {
-  const sel = document.getElementById('previewTypeSelect');
-  if (!sel) return console.error('No #previewTypeSelect found');
-  
-  // 1) Clear any existing options
-  sel.options.length = 0;
-
-  // 2) Populate with metaTypes
-  metaTypes.forEach(mt => {
-    // The Option() constructor always returns a valid HTMLOptionElement
-    const opt = new Option(mt.name, mt.id);
-    sel.add(opt);
+  // ── TAB SWITCHING ────────────────────────────────────────────────────
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab, .tab-content').forEach(el => el.classList.remove('active'));
+      tab.classList.add('active');
+      document.getElementById(tab.dataset.tab).classList.add('active');
+      if (tab.dataset.tab==='typesTab') renderTypes();
+      if (tab.dataset.tab==='relsTab')  { populateRelsFilter(); renderRels(); }
+      if (tab.dataset.tab==='schemaTab') renderSchema();
+      if (tab.dataset.tab==='previewTab') { updatePreviewTypeSelect(); renderPreviewForm(); }
+    });
   });
 
-  // 3) On change, redraw the preview
-  sel.onchange = renderPreviewForm;
-
-  // 4) Pick the first value (if any) and render once
-  if (sel.options.length) {
-    sel.selectedIndex = 0;
-    renderPreviewForm();
+  // ── PREVIEW ──────────────────────────────────────────────────────────
+  function updatePreviewTypeSelect() {
+    const sel = document.getElementById('previewTypeSelect');
+    sel.innerHTML = '';
+    metaTypes.forEach(mt => sel.appendChild(new Option(mt.name,mt.id)));
+    sel.onchange = renderPreviewForm;
+    if (sel.options.length) { sel.selectedIndex=0; renderPreviewForm(); }
   }
-}
 function renderPreviewForm() {
   const typeId = document.getElementById('previewTypeSelect').value;
   const form   = document.getElementById('previewForm');
@@ -765,8 +910,7 @@ function renderPreviewForm() {
   schemaRows.forEach(r => {
     if (!r.type_IDs.includes(typeId) || r.layout === 'hidden') return;
     const grp = r.group || 'Default';
-    if (!grouped[grp]) grouped[grp] = [];
-    grouped[grp].push(r);
+    (grouped[grp] = grouped[grp]||[]).push(r);
   });
 
   // Build the accordion
@@ -800,8 +944,7 @@ function renderPreviewForm() {
 
     const body = document.createElement('div');
     body.className = 'accordion-body';
-
-    const row = document.createElement('div');
+    const row  = document.createElement('div');
     row.className = 'row g-3';
 
     // Render each field in this group
@@ -832,6 +975,7 @@ function renderPreviewForm() {
         ? 'form-check form-switch mt-2'
         : 'mb-3';
 
+      // Label
       const label = document.createElement('label');
       label.className = r.widget === 'checkbox'
         ? 'form-check-label ms-2'
@@ -841,269 +985,240 @@ function renderPreviewForm() {
       let input;
 
       switch (r.widget) {
+        // ─ Text + Number Inputs ───────────────────────────
+        case 'text input':
+        case 'spinner': {
+          wrapper.appendChild(label);
+          // parse prefix/suffix
+          let before = '', after = '', placeholder = '';
+          if (r.options.length) {
+            const [posOpt, placeOpt] = r.options;
+            const [k,v] = posOpt.split(':').map(s=>s.trim());
+            if (k.toLowerCase()==='before') before = v;
+            else if (k.toLowerCase()==='after') after = v;
+            placeholder = (placeOpt||'').trim();
+          }
+          if (before||after) {
+            const grp = document.createElement('div');
+            grp.className = 'input-group';
+            if (before) {
+              const sp = document.createElement('span');
+              sp.className = 'input-group-text';
+              sp.textContent = before;
+              grp.appendChild(sp);
+            }
+            input = document.createElement('input');
+            input.type = r.widget==='spinner'?'number':'text';
+            input.className = 'form-control';
+            if (placeholder) input.placeholder = placeholder;
+            grp.appendChild(input);
+            if (after) {
+              const sp = document.createElement('span');
+              sp.className = 'input-group-text';
+              sp.textContent = after;
+              grp.appendChild(sp);
+            }
+            wrapper.appendChild(grp);
+          } else {
+            input = document.createElement('input');
+            input.type = r.widget==='spinner'?'number':'text';
+            input.className = 'form-control';
+            if (r.options[0]) input.placeholder = r.options[0];
+            wrapper.appendChild(input);
+          }
+          break;
+        }
+
+        // ─ Rich Text (Quill) ──────────────────────────────
         case 'rich text': {
-  // 1) Placeholder container
-  const editorDiv = document.createElement('div');
-  editorDiv.id        = `rich-editor-${r.id}`;
-  editorDiv.style.minHeight = '120px';
-  editorDiv.className = 'form-control';   // get Bootstrap form-control styling
-  wrapper.appendChild(editorDiv);
+          wrapper.appendChild(label);
+          const ed = document.createElement('div');
+          ed.id = `rich-editor-${r.id}`;
+          ed.className = 'form-control';
+          ed.style.minHeight = '120px';
+          wrapper.appendChild(ed);
+          setTimeout(() => {
+            const q = new Quill(ed, {
+              theme: 'snow',
+              placeholder: r.options[0]||''
+            });
+            if (r.options[0]) q.setText(r.options[0]);
+            quillEditors[r.id] = q;
+          },0);
+          break;
+        }
 
-  // 2) Initialize Quill after DOM insertion
-  setTimeout(() => {
-    const q = new Quill(editorDiv, {
-      theme: 'snow',
-      placeholder: r.options[0] || ''
-    });
-    // load existing text (if any)
-    if (r.options[0]) q.setText(r.options[0]);
-    quillEditors[r.id] = q;
-  }, 0);
-
-  col.appendChild(wrapper);
-  row.appendChild(col);
-  return;
-}
-case 'text input':
-case 'spinner': {
-  const isNumber = r.widget === 'spinner';
-
-  // --- Create & insert label ---
-  const lbl = document.createElement('label');
-  lbl.className = 'form-label';
-  lbl.textContent = r.label || r.name;
-  wrapper.appendChild(lbl);
-
-  // --- Parse Before/After + placeholder ---
-  let before = '', after = '', placeholder = '';
-  if (r.options.length) {
-    const [optPos, optPlaceholder] = r.options;
-    const [posKey, posVal] = optPos.split(':').map(s=>s.trim());
-    if (posKey.toLowerCase() === 'before') before = posVal;
-    else if (posKey.toLowerCase() === 'after') after = posVal;
-    placeholder = (optPlaceholder||'').trim();
-  }
-
-  // --- Build input (with or without input-group) ---
-  if (before || after) {
-    const group = document.createElement('div');
-    group.className = 'input-group';
-
-    if (before) {
-      const span = document.createElement('span');
-      span.className = 'input-group-text';
-      span.textContent = before;
-      group.appendChild(span);
-    }
-
-    const inp = document.createElement('input');
-    inp.type = isNumber ? 'number' : 'text';
-    inp.className = 'form-control';
-    if (placeholder) inp.placeholder = placeholder;
-    group.appendChild(inp);
-
-    if (after) {
-      const span = document.createElement('span');
-      span.className = 'input-group-text';
-      span.textContent = after;
-      group.appendChild(span);
-    }
-
-    wrapper.appendChild(group);
-
-  } else {
-    const inp = document.createElement('input');
-    inp.type = isNumber ? 'number' : 'text';
-    inp.className = 'form-control';
-    if (r.options[0]) inp.placeholder = r.options[0];
-    wrapper.appendChild(inp);
-  }
-
-  col.appendChild(wrapper);
-  row.appendChild(col);
-  return;
-}
-
-
-  case 'progress bar': {
-    // 1) Extract optional Max
-    let maxValue = 100;
-    const segments = [];
-    r.options.forEach(opt => {
-      const [key,val] = opt.split(':').map(s=>s.trim());
-      if (key.toLowerCase() === 'max') {
-        maxValue = parseFloat(val) || maxValue;
-      } else {
-        segments.push(opt);
-      }
-    });
-
-    // 2) Build container
-    const progressContainer = document.createElement('div');
-    progressContainer.className = 'progress';
-
-    segments.forEach(opt => {
-      const parts   = opt.split(':').map(s=>s.trim());
-      const value   = parseFloat(parts[0]) || 0;
-      const pct     = (value / maxValue) * 100;
-      const label   = parts[1] || '';
-      const rawClr  = (parts[2] || '').toLowerCase();
-      const bsClr   = BS_COLOR_MAP[rawClr];
-
-      const bar = document.createElement('div');
-      bar.className = bsClr
-        ? `progress-bar bg-${bsClr}`
-        : 'progress-bar';
-      bar.style.width = `${pct}%`;
-      if (label) bar.textContent = label;
-
-      progressContainer.appendChild(bar);
-    });
-
-    wrapper.appendChild(progressContainer);
-    col.appendChild(wrapper);
-    row.appendChild(col);
-    return;
-  }
+        // ─ Textarea ────────────────────────────────────────
         case 'textarea':
+          wrapper.appendChild(label);
           input = document.createElement('textarea');
           input.className = 'form-control';
+          if (r.options[0]) input.value = r.options[0];
+          wrapper.appendChild(input);
           break;
 
- 
-
+        // ─ Stepper ──────────────────────────────────────────
         case 'stepper': {
+          wrapper.appendChild(label);
           const grp = document.createElement('div');
           grp.className = 'input-group';
           const dec = document.createElement('button');
-          dec.className = 'btn btn-outline-secondary';
-          dec.type = 'button';
-          dec.textContent = '−';
-          const inc = document.createElement('button');
-          inc.className = 'btn btn-outline-secondary';
-          inc.type = 'button';
-          inc.textContent = '+';
+          dec.type='button'; dec.className='btn btn-outline-secondary'; dec.textContent='−';
           const num = document.createElement('input');
-          num.type = 'number';
-          num.className = 'form-control';
-          grp.append(dec, num, inc);
-          wrapper.appendChild(label);
+          num.type='number'; num.className='form-control';
+          const inc = document.createElement('button');
+          inc.type='button'; inc.className='btn btn-outline-secondary'; inc.textContent='+';
+          dec.onclick = () => num.value = (parseFloat(num.value)||0) - 1;
+          inc.onclick = () => num.value = (parseFloat(num.value)||0) + 1;
+          grp.append(dec,num,inc);
           wrapper.appendChild(grp);
-          col.appendChild(wrapper);
-          row.appendChild(col);
-          return;  // skip generic append
+          break;
         }
 
+        // ─ Range Slider ─────────────────────────────────────
         case 'range slider':
+          wrapper.appendChild(label);
           input = document.createElement('input');
-          input.type = 'range';
-          input.className = 'form-range';
-          if (r.options[0]) input.min  = r.options[0];
-          if (r.options[1]) input.max  = r.options[1];
+          input.type='range'; input.className='form-range';
+          if (r.options[0]) input.min = r.options[0];
+          if (r.options[1]) input.max = r.options[1];
           if (r.options[2]) input.step = r.options[2];
-          input.value = ((parseFloat(input.min)||0) + (parseFloat(input.max)||100)) / 2;
+          wrapper.appendChild(input);
           break;
 
+        // ─ Date/Time Pickers ─────────────────────────────────
         case 'date picker':
-          input = document.createElement('input');
-          input.type = 'date';
-          input.className = 'form-control';
-          break;
-
         case 'time picker':
-          input = document.createElement('input');
-          input.type = 'time';
-          input.className = 'form-control';
-          break;
-
         case 'datetime-local':
         case 'month picker':
-        case 'week picker': {
+        case 'week picker':
+          wrapper.appendChild(label);
           input = document.createElement('input');
-          input.type = r.widget.replace(' picker','').replace('datetime-local','datetime-local');
-          input.className = 'form-control';
+          input.type = r.widget.replace(' picker','');
+          input.className='form-control';
+          wrapper.appendChild(input);
           break;
-        }
 
-
-
-
-
+        // ─ Checkbox ──────────────────────────────────────────
         case 'checkbox':
           input = document.createElement('input');
-          input.type = 'checkbox';
-          input.className = 'form-check-input';
+          input.type='checkbox'; input.className='form-check-input';
           wrapper.appendChild(input);
           wrapper.appendChild(label);
-          col.appendChild(wrapper);
-          row.appendChild(col);
-          return;  // skip generic append
-
-        case 'select':
-        case 'single select':
-          input = document.createElement('select');
-          input.className = 'form-select';
-          r.options.forEach(o => {
-            const opt = document.createElement('option');
-            opt.value = opt.textContent = o;
-            input.appendChild(opt);
-          });
           break;
 
-        case 'multi-select':
-          input = document.createElement('select');
-          input.className = 'form-select';
-          input.multiple = true;
-          r.options.forEach(o => {
-            const opt = document.createElement('option');
-            opt.value = opt.textContent = o;
-            input.appendChild(opt);
-          });
-          break;
-
-        case 'dial gauge': {
-          const gaugeDiv = document.createElement('div');
-          const gaugeId  = `gauge-${r.id}`;
-          gaugeDiv.id     = gaugeId;
-          gaugeDiv.style.width  = '200px';
-          gaugeDiv.style.height = '160px';
+        // ─ Radio / Toggle ───────────────────────────────────
+        case 'radio group':
+        case 'toggle buttons': {
           wrapper.appendChild(label);
-          wrapper.appendChild(gaugeDiv);
-          col.appendChild(wrapper);
-          row.appendChild(col);
-
-          setTimeout(() => {
-            try {
-              const min = parseFloat(r.options[0]) || 0;
-              const max = parseFloat(r.options[1]) || 100;
-              const val = (min + max) / 2;
-              new JustGage({
-                id:              gaugeId,
-                value:           val,
-                min:             min,
-                max:             max,
-                title:           r.label || r.name,
-                label:           '',
-                pointer:         true,
-                gaugeWidthScale: 0.6
-              });
-            } catch (err) {
-              console.error(`Gauge init failed for ${gaugeId}:`, err);
-            }
-          }, 0);
-
-          return;  // skip generic append
+          const choices = (r.options[0]||'').split(',').map(s=>s.trim());
+          if (r.widget==='toggle buttons') {
+            const btnGrp = document.createElement('div');
+            btnGrp.className='btn-group';
+            choices.forEach(opt => {
+              const lb = document.createElement('label');
+              lb.className='btn btn-outline-primary';
+              const ip = document.createElement('input');
+              ip.type='radio'; ip.name=r.id; lb.appendChild(ip);
+              lb.append(opt);
+              btnGrp.appendChild(lb);
+            });
+            wrapper.appendChild(btnGrp);
+          } else {
+            choices.forEach(opt => {
+              const div = document.createElement('div');
+              div.className='form-check';
+              const ip = document.createElement('input');
+              ip.className='form-check-input'; ip.type='radio'; ip.name=r.id;
+              const lb = document.createElement('label');
+              lb.className='form-check-label'; lb.textContent=opt;
+              div.append(ip,lb);
+              wrapper.appendChild(div);
+            });
+          }
+          break;
         }
 
+        // ─ Select Inputs ─────────────────────────────────────
+        case 'select':
+ case 'single select':
+  wrapper.appendChild(label);
+  input = document.createElement('select');
+  input.className = 'form-select';
+  // add every choice, select the first as default
+  r.options.forEach((optText, idx) => {
+    const opt = document.createElement('option');
+    opt.value = opt.textContent = optText;
+    if (idx === 0) opt.selected = true;
+    input.appendChild(opt);
+  });
+  wrapper.appendChild(input);
+  break;
+
+case 'multi-select':
+  wrapper.appendChild(label);
+  input = document.createElement('select');
+  input.className = 'form-select';
+  input.multiple = true;
+  // add every choice, and mark all of them selected by default
+  r.options.forEach(optText => {
+    const opt = document.createElement('option');
+    opt.value = opt.textContent = optText;
+    opt.selected = true;
+    input.appendChild(opt);
+  });
+  wrapper.appendChild(input);
+  break;
+
+        // ─ Progress Bar ─────────────────────────────────────
+        case 'progress bar': {
+          wrapper.appendChild(label);
+          let maxVal = 100;
+          const segs = [];
+          r.options.forEach(opt => {
+            const [k,v] = opt.split(':').map(s=>s.trim());
+            if (k.toLowerCase()==='max') maxVal = parseFloat(v)||maxVal;
+            else segs.push(opt);
+          });
+          const pc = document.createElement('div');
+          pc.className='progress';
+          segs.forEach(opt => {
+            const [val,txt,clr] = opt.split(':').map(s=>s.trim());
+            const pct = (parseFloat(val)||0)/maxVal*100;
+            const bc  = BS_COLOR_MAP[(clr||'').toLowerCase()];
+            const bar = document.createElement('div');
+            bar.className = 'progress-bar' + (bc?` bg-${bc}`:'');
+            bar.style.width = pct+'%';
+            if (txt) bar.textContent = txt;
+            pc.appendChild(bar);
+          });
+          wrapper.appendChild(pc);
+          break;
+        }
+
+        // ─ Dial Gauge ───────────────────────────────────────
+        case 'dial gauge':
+          wrapper.appendChild(label);
+          const gd = document.createElement('div');
+          gd.id = `gauge-${r.id}`;
+          gd.style.width='200px'; gd.style.height='160px';
+          wrapper.appendChild(gd);
+          setTimeout(()=> new JustGage({
+            id: gd.id,
+            value: (parseFloat(r.options[0])||0 + parseFloat(r.options[1])||100)/2,
+            min: parseFloat(r.options[0])||0,
+            max: parseFloat(r.options[1])||100,
+            title: '', label:'', pointer:true, gaugeWidthScale:0.6
+          }), 0);
+          break;
+
         default:
+          wrapper.appendChild(label);
           input = document.createElement('input');
-          input.type = 'text';
-          input.className = 'form-control';
+          input.type='text'; input.className='form-control';
+          wrapper.appendChild(input);
       }
 
-      // generic append for non-special cases
-      wrapper.appendChild(label);
-      wrapper.appendChild(input);
       col.appendChild(wrapper);
       row.appendChild(col);
     });
@@ -1119,241 +1234,50 @@ case 'spinner': {
 }
 
 
-
-
-
-
-  // Types CRUD
-  function renderTypes() {
-    const tbody = document.getElementById('typesBody'); tbody.innerHTML = '';
-    metaTypes.forEach((t,i) => {
-      const tr = document.createElement('tr');
-      const idTd = document.createElement('td'); const idIn = document.createElement('input'); idIn.value = t.id; idIn.disabled = true; idTd.appendChild(idIn); tr.appendChild(idTd);
-      const nameTd = document.createElement('td'); const nameIn = document.createElement('input'); nameIn.value = t.name; nameIn.onchange = e => t.name = e.target.value; nameTd.appendChild(nameIn); tr.appendChild(nameTd);
-      const descTd = document.createElement('td'); const descIn = document.createElement('input'); descIn.value = t.description; descIn.onchange = e => t.description = e.target.value; descTd.appendChild(descIn); tr.appendChild(descTd);
-      const sysTd = document.createElement('td'); const sysCb = document.createElement('input'); sysCb.type = 'checkbox'; sysCb.checked = t.system; sysCb.onchange = e => t.system = e.target.checked; sysTd.appendChild(sysCb); tr.appendChild(sysTd);
-      const actTd = document.createElement('td'); const delBtn = document.createElement('button'); delBtn.className = 'btn btn-danger'; delBtn.textContent = 'Delete'; delBtn.onclick = () => { metaTypes.splice(i,1); renderTypes(); }; actTd.appendChild(delBtn); tr.appendChild(actTd);
-      tbody.appendChild(tr);
+  // ── SAVE ALL BUTTON ─────────────────────────────────────────────────
+  document.getElementById('saveAllBtn').addEventListener('click', () => {
+    // Types
+    saveCSV(metaTypes,'meta-objects.csv',['id','name','description','system']);
+    // Rels
+    saveCSV(metaRels.map(r=>({
+      id:r.id,name:r.name,reverseName:r.reverseName,
+      label:r.label,fromMetaObjectID:r.fromMetaObjectID,
+      toMetaObjectID:r.toMetaObjectID,system:r.system
+    })), 'rels_meta-objects.csv',[
+      'id','name','reverseName','label',
+      'fromMetaObjectID','toMetaObjectID','system'
+    ]);
+    // Schema
+    schemaRows.forEach(r => {
+      if (r.widget==='rich text'&&quillEditors[r.id]) {
+        r.options=[quillEditors[r.id].getText().trim()];
+      }
     });
-  }
-  document.getElementById('loadTypesBtn').addEventListener('click', () => {
-    const f = document.getElementById('typesFile').files[0]; if (!f) return;
-    Papa.parse(f,{header:true,skipEmptyLines:true,complete:res=>{ metaTypes = res.data.map(r=>({id:r.id,name:r.name,description:r.description,system:String(r.system||'').toLowerCase()==='true'})); renderTypes(); }});
-  });
-  document.getElementById('addTypeBtn').addEventListener('click', () => {
-    const maxId = metaTypes.reduce((m,t)=>Math.max(m,parseInt(t.id,10)||0),0);
-    const nextId = (maxId+1).toString();
-    metaTypes.push({ id: nextId, name: '', description: '', system: false });
-    renderTypes();
-  });
-  document.getElementById('downloadTypesBtn').addEventListener('click', () => {
-    const csv = Papa.unparse(metaTypes,{columns:['id','name','description','system']});
-    const blob = new Blob([csv],{type:'text/csv'}); const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url; a.download = 'meta-objects.csv'; a.click(); URL.revokeObjectURL(url);
+    saveCSV(schemaRows.map(r=>({
+      id:r.id,name:r.name,label:r.label,
+      type_IDs:r.type_IDs.join(','),
+      dataType:r.dataType,widget:r.widget,
+      options:r.options.join(','),group:r.group,
+      layout:r.layout,system:r.system
+    })), 'meta-object-properties.csv',[
+      'id','name','label','type_IDs',
+      'dataType','widget','options','group','layout','system'
+    ]);
   });
 
-  // Relationships CRUD
-  function populateRelsFilter() {
-    const sel = document.getElementById('relsFilterSelect'); sel.innerHTML = '';
-    metaTypes.forEach(mt=>{const o=document.createElement('option');o.value=mt.id;o.textContent=mt.name;sel.appendChild(o);});
-    sel.onchange = renderRels;
-  }
-  function renderRels() {
-    const fromId = document.getElementById('relsFilterSelect').value;
-    const tbody = document.getElementById('relsBody'); tbody.innerHTML = '';
-    metaRels.filter(r=>r.fromMetaObjectID===fromId).forEach((r,i)=>{
-      const tr = document.createElement('tr');
-      const idTd = document.createElement('td'); idTd.textContent = r.id; tr.appendChild(idTd);
-      const nameTd = document.createElement('td'); const nameIn = document.createElement('input'); nameIn.type='text'; nameIn.value=r.name; nameIn.onchange=e=>r.name=e.target.value; nameTd.appendChild(nameIn); tr.appendChild(nameTd);
-      const revTd = document.createElement('td'); const revIn=document.createElement('input'); revIn.type='text'; revIn.value=r.reverseName; revIn.onchange=e=>r.reverseName=e.target.value; revTd.appendChild(revIn); tr.appendChild(revTd);
-      const lblTd = document.createElement('td'); const lblIn=document.createElement('input'); lblIn.type='text'; lblIn.value=r.label; lblIn.onchange=e=>r.label=e.target.value; lblTd.appendChild(lblIn); tr.appendChild(lblTd);
-      const fromTd=document.createElement('td'); fromTd.textContent=r.fromMetaObjectID; tr.appendChild(fromTd);
-      const toTd=document.createElement('td'); const toSel=document.createElement('select'); metaTypes.forEach(mt=>{const o=document.createElement('option');o.value=mt.id;o.textContent=mt.name;if(r.toMetaObjectID===mt.id)o.selected=true;toSel.appendChild(o);}); toSel.onchange=e=>r.toMetaObjectID=e.target.value; toTd.appendChild(toSel); tr.appendChild(toTd);
-      const sysTd=document.createElement('td'); const sysCb=document.createElement('input'); sysCb.type='checkbox'; sysCb.checked=r.system; sysCb.onchange=e=>r.system=e.target.checked; sysTd.appendChild(sysCb); tr.appendChild(sysTd);
-      const actTd=document.createElement('td'); const delBtn=document.createElement('button'); delBtn.className='btn btn-danger'; delBtn.textContent='Delete'; delBtn.onclick=()=>{metaRels.splice(i,1);renderRels();}; actTd.appendChild(delBtn); tr.appendChild(actTd);
-      tbody.appendChild(tr);
-    });
-  }
-  document.getElementById('loadRelsBtn').addEventListener('click',()=>{
-    const f=document.getElementById('relsFile').files[0];if(!f)return;
-    Papa.parse(f,{header:true,skipEmptyLines:true,complete:res=>{metaRels=res.data.map(r=>({id:r.id,name:r.name,reverseName:r.reverseName||r.reversename||'',label:r.label,fromMetaObjectID:r.fromMetaObjectID,toMetaObjectID:r.toMetaObjectID,system:String(r.system||'').toLowerCase()==='true'}));populateRelsFilter();renderRels();}});
+  // ── EXAMPLE TAB TOGGLE ────────────────────────────────────────────────
+  const toggleBtn  = document.getElementById('toggleExampleTabBtn');
+  const exampleTab = document.getElementById('exampleWidgetTab');
+  exampleTab.style.display = 'none';
+  toggleBtn.classList.remove('btn-success');
+  toggleBtn.classList.add('btn-secondary');
+  toggleBtn.addEventListener('click', () => {
+    const hidden = exampleTab.style.display==='none';
+    exampleTab.style.display = hidden?'block':'none';
+    toggleBtn.classList.toggle('btn-success', hidden);
+    toggleBtn.classList.toggle('btn-secondary', !hidden);
   });
-  document.getElementById('addRelBtn').addEventListener('click',()=>{
-    if(metaTypes.length===0)return alert('Load types first');
-    const fromId=document.getElementById('relsFilterSelect').value;
-    const maxId=metaRels.reduce((m,r)=>Math.max(m,parseInt(r.id,10)||0),0);
-    const nextId=(maxId+1).toString();
-    const defaultTo=metaTypes[0].id;
-    metaRels.push({id:nextId,name:'',reverseName:'',label:'',fromMetaObjectID:fromId,toMetaObjectID:defaultTo,system:false});
-    renderRels();
-  });
-  document.getElementById('downloadRelsBtn').addEventListener('click',()=>{
-    const data=metaRels.map(r=>({id:r.id,name:r.name,reverseName:r.reverseName,label:r.label,fromMetaObjectID:r.fromMetaObjectID,toMetaObjectID:r.toMetaObjectID,system:r.system}));
-    const csv=Papa.unparse(data,{columns:['id','name','reverseName','label','fromMetaObjectID','toMetaObjectID','system']});
-    const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.download='rels_meta-objects.csv';a.click();URL.revokeObjectURL(url);
-  });
-  
-  
-  
-  window.addEventListener('DOMContentLoaded', () => {
-  autoLoadCSV('https://raw.githubusercontent.com/mowenuk/prodmgt/main/meta-models/meta-objects.csv', loadTypesFromData);
-  autoLoadCSV('https://raw.githubusercontent.com/mowenuk/prodmgt/main/meta-models/rels_meta-objects.csv',  loadRelsFromData);
-  autoLoadCSV('https://raw.githubusercontent.com/mowenuk/prodmgt/main/meta-models/meta-object-properties.csv', loadSchemaFromData);
-});
-
-document.getElementById('saveAllBtn').addEventListener('click', () => {
-  saveCSV(metaTypes.map(t => ({
-    id: t.id,
-    name: t.name,
-    description: t.description,
-    system: t.system
-  })), 'meta-objects.csv', ['id', 'name', 'description', 'system']);
-
-  saveCSV(metaRels.map(r => ({
-    id: r.id,
-    name: r.name,
-    reverseName: r.reverseName,
-    label: r.label,
-    fromMetaObjectID: r.fromMetaObjectID,
-    toMetaObjectID: r.toMetaObjectID,
-    system: r.system
-  })), 'rels_meta-objects.csv', ['id', 'name', 'reverseName', 'label', 'fromMetaObjectID', 'toMetaObjectID', 'system']);
-
-  saveCSV(schemaRows.map(r => ({
-    id: r.id,
-    name: r.name,
-    label: r.label,
-    type_IDs: r.type_IDs.join(','),
-    dataType: r.dataType,
-    widget: r.widget,
-    options: r.options.join(','),
-    group: r.group || '',
-layout: r.layout || 'full-width',
-
-    system: r.system
-  })), 'meta-object-properties.csv', ['id', 'name', 'label', 'type_IDs', 'dataType', 'widget', 'options', 'group', 'layout', 'system']
-);
-});
-
-function saveCSV(data, filename, columns) {
-  const csv = Papa.unparse(data, { columns });
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
-}
-
-
-function autoLoadCSV(url, callback) {
-  fetch(url)
-    .then(response => {
-      if (!response.ok) throw new Error(`Failed to fetch ${url}`);
-      return response.text();
-    })
-    .then(text => {
-      Papa.parse(text, {
-        header: true,
-        skipEmptyLines: true,
-        complete: results => callback(results.data)
-      });
-    })
-    .catch(err => console.error(`Error loading ${url}:`, err));
-}
-
-function loadTypesFromData(data) {
-  metaTypes = data.map(r => ({
-    id: r.id,
-    name: r.name,
-    description: r.description,
-    system: String(r.system || '').toLowerCase() === 'true'
-  }));
-  renderTypes();
-}
-
-function loadRelsFromData(data) {
-  metaRels = data.map(r => ({
-    id: r.id,
-    name: r.name,
-    reverseName: r.reverseName || r.reversename || '',
-    label: r.label,
-    fromMetaObjectID: r.fromMetaObjectID,
-    toMetaObjectID: r.toMetaObjectID,
-    system: String(r.system || '').toLowerCase() === 'true'
-  }));
-  populateRelsFilter();
-  renderRels();
-}
-
-function loadSchemaFromData(data) {
-  schemaRows = data.map(r => ({
-    id: r.id,
-    name: r.name,
-    label: r.label,
-    type_IDs: (r.type_IDs || '').split(',').map(s => s.trim()),
-    dataType: r.dataType,
-    widget: r.widget,
-    options: r.widget === 'rich text'
-      ? [ (r.options || '') ]     // keep whole cell as one option
-      : (r.options || '').split(',').map(s => s.trim()),
-    group: r.group || '',
-layout: r.layout || 'full-width',
-
-    system: String(r.system || '').toLowerCase() === 'true'
-  }));
-  renderSchema();
-}
-
-const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/mowenuk/prodmgt/main/meta-models/';
-
-function getFilename(base, prefix) {
-  return `${GITHUB_RAW_BASE}${prefix ? `${prefix}_` : ''}${base}`;
-}
-
-function loadDataset(prefix = '') {
-  autoLoadCSV(getFilename('meta-objects.csv', prefix), loadTypesFromData);
-  autoLoadCSV(getFilename('rels_meta-objects.csv', prefix), loadRelsFromData);
-  autoLoadCSV(getFilename('meta-object-properties.csv', prefix), loadSchemaFromData);
-}
-
-document.getElementById('reloadDatasetBtn').addEventListener('click', () => {
-  const selected = document.getElementById('datasetSelector').value;
-  const prefix = selected === 'togaf' ? 'togaf' : '';
-  loadDataset(prefix);
-});
-
-// Initial load
-window.addEventListener('DOMContentLoaded', () => {
-  loadDataset(); // loads default by default
-});
-  
-<!-- Add this script to toggle the example tab visibility -->
-// cache DOM nodes
-const toggleBtn     = document.getElementById('toggleExampleTabBtn');
-const exampleTab    = document.getElementById('exampleWidgetTab');
-
-// ensure initial state is hidden + grey
-exampleTab.style.display = 'none';
-toggleBtn.classList.remove('btn-success');
-toggleBtn.classList.add('btn-secondary');
-
-toggleBtn.addEventListener('click', () => {
-  // toggle visibility
-  const nowHidden = exampleTab.style.display === 'none';
-  exampleTab.style.display = nowHidden ? 'block' : 'none';
-
-  // swap button color classes
-  if (nowHidden) {
-    toggleBtn.classList.remove('btn-secondary');
-    toggleBtn.classList.add('btn-success');
-  } else {
-    toggleBtn.classList.remove('btn-success');
-    toggleBtn.classList.add('btn-secondary');
-  }
-});
 </script>
+
 </body>
 </html>
