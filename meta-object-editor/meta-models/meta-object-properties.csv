@@ -1,12 +1,13 @@
 id,name,label,type_IDs,dataType,widget,options,group,layout,system
 1,id,ID,"1,2,3,4,5,6,7,8,9,10",short text,text input,,System,one-third,TRUE
 2,object_type,Object Type,"1,2,3,4,5,6,7,8,9,10",short text,select,,System,two-thirds,TRUE
-3,text,Text,"1,2,3,4,5,6,7,8,9,10",long text,textarea,,,half-left,TRUE
-4,owner,Owner,"1,2,3,4,5,6,7,8,9,10",short text,text input,,System,half-right,TRUE
-5,comment,Comment,"1,2,3,4,5,6,7,8,9,10",long text,textarea,,,full-width,FALSE
-6,priority,Priority,"1,2,3,4,9",short text,single select,"High,Medium,Low",,quarter,FALSE
-7,duration,Duration,"1,2,3,4,",integer,spinner,,,quarter,FALSE
-8,start_date,Start Date,"1,2,3",date,date picker,,,quarter,FALSE
-9,progress,Progress,"1,2,3",percentage,progress bar,,,full-width,FALSE
-10,volume,Volume,5,short text,text input,,,quarter,FALSE
-11,department,Department,"3,11",short text,single select,"Sales,Product Management,HR,Finance,Pre-Sales,Engineering,Marketing",,full-width,FALSE
+3,name,Name,"1,2,3,4,5,6,7,8,9,10",short text,text input,,System,one-third,TRUE
+4,text,Text,"1,2,3,4,5,6,7,8,9,10",long text,textarea,,,half-left,TRUE
+5,owner,Owner,"1,2,3,4,5,6,7,8,9,10",short text,text input,,System,half-right,TRUE
+6,comment,Comment,"1,2,3,4,5,6,7,8,9,10",long text,textarea,,,full-width,FALSE
+7,priority,Priority,"1,2,3,4,9",short text,single select,"High,Medium,Low",,quarter,FALSE
+8,duration,Duration,"1,2,3,4,",integer,spinner,,,quarter,FALSE
+9,start_date,Start Date,"1,2,3",date,date picker,,,quarter,FALSE
+10,progress,Progress,"1,2,3",percentage,progress bar,,,full-width,FALSE
+11,volume,Volume,5,short text,text input,,,quarter,FALSE
+12,department,Department,"3,11",short text,single select,"Sales,Product Management,HR,Finance,Pre-Sales,Engineering,Marketing",,full-width,FALSE
