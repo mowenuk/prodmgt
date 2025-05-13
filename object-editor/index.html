@@ -28,12 +28,11 @@
   <div class="container py-4">
     <h2 class="mb-4 text-center">CSV Manager</h2>
     <div class="form-row align-items-center mb-3">
-      <div class="col-auto"><input type="file" class="form-control-file" id="fileInput" accept=".csv"></div>
-      <div class="col-auto"><input type="file" class="form-control-file" id="relsInput" accept=".csv"></div>
-      <div class="col-auto"><input type="text" class="form-control" id="filenameInput" placeholder="New filename (data.csv)"></div>
-      <div class="col-auto"><button id="downloadBtn" class="btn btn-primary" disabled>Download CSVs</button></div>
-      <div class="col-auto"><button id="addColBtn" class="btn btn-secondary" disabled>Add Column</button></div>
+      <div class="col-auto"><input type="text" class="form-control" id="filenameInput" placeholder="New filename (objects.csv)" value="objects.csv"></div>
+      <div class="col-auto"><button id="downloadBtn" class="btn btn-primary">Download CSVs</button></div>
+      <div class="col-auto"><button id="addColBtn" class="btn btn-secondary">Add Column</button></div>
     </div>
+
     <ul class="nav nav-tabs" id="tabNav">
       <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#dataTab">Data</a></li>
       <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#relsTab">Relations</a></li>
@@ -149,30 +148,96 @@
       el.addEventListener('input',e=>{ rels=rels.map(x=>x.id===relData.id?{...x,[field]:e.target.value}:x); }); return el;
     }
 
-    // File Loaders
-    fileInput.addEventListener('change',e=>{ const f=e.target.files[0]; if(!f)return; dataFileOriginalName=f.name; filename=f.name; filenameInput.value=f.name; const r=new FileReader(); r.onload=evt=>{ parseCSV(r.result); downloadBtn.disabled=false; addColBtn.disabled=false; renderTable(); }; r.readAsText(f); });
-    relsInput.addEventListener('change',e=>{ const f=e.target.files[0]; if(!f)return; relsFileOriginalName=f.name; const r=new FileReader(); r.onload=evt=>{ parseRelsCSV(r.result); renderRels(); addRelBtn.disabled=false; }; r.readAsText(f); });
-
+    
     // CRUD
     addRowBtn.onclick=()=>{ const o={ID:nextId++}; headers.forEach(h=>{ if(h!=='ID')o[h]=''; }); data.push(o); renderTable(); };
     addRelBtn.onclick=()=>{ if(!selectedId)return; const nr={id:String(nextRelId++),name:'',source:String(selectedId),target:'',type:'',type_name:''}; rels.push(nr); renderRels(); };
 
     // Download Handler
     filenameInput.addEventListener('input',()=>{ if(filenameInput.value.trim()) downloadBtn.disabled=false; });
-    downloadBtn.addEventListener('click',()=>{
-      const base = filenameInput.value.trim() || dataFileOriginalName;
-      const dataName = base;
-      const dataBlob = new Blob([generateCSV()], {type:'text/csv'});
-      const a = document.createElement('a'); a.href = URL.createObjectURL(dataBlob); a.download = dataName; a.click();
+    downloadBtn.addEventListener('click', () => {
+      const base = filenameInput.value.trim() || dataFileOriginalName || 'data.csv';
+      const dataBlob = new Blob([generateCSV()], { type: 'text/csv' });
+      const dataLink = document.createElement('a');
+      dataLink.href = URL.createObjectURL(dataBlob);
+      dataLink.download = base;
+      dataLink.click();
 
-      let relName;
-      if (relsFileOriginalName && base === dataFileOriginalName) relName = relsFileOriginalName;
-      else relName = dataName.replace(/\.csv$/i,'') + '_rels.csv';
-      const relLines = [['id','name','source','target','type','type_name'].join(',')]
-        .concat(rels.map(r=>['id','name','source','target','type','type_name'].map(c=>r[c]||'').join(',')));
-      const relBlob = new Blob([relLines.join('\n')], { type:'text/csv' });
-      const b = document.createElement('a'); b.href = URL.createObjectURL(relBlob); b.download = relName; b.click();
+      const relName = 'rels_' + base.replace(/\.csv$/i, '') + '.csv';
+      const relLines = [['id', 'name', 'source', 'target', 'type', 'type_name'].join(',')]
+        .concat(rels.map(r => ['id', 'name', 'source', 'target', 'type', 'type_name'].map(c => r[c] || '').join(',')));
+      const relBlob = new Blob([relLines.join('\n')], { type: 'text/csv' });
+      const relLink = document.createElement('a');
+      relLink.href = URL.createObjectURL(relBlob);
+      relLink.download = relName;
+      relLink.click();
     });
+    window.addEventListener('DOMContentLoaded', () => {
+  const defaultDataPath = 'data/data.csv';
+
+  fetch(defaultDataPath)
+    .then(res => res.ok ? res.text() : Promise.reject('No default data'))
+    .then(csv => {
+      parseCSV(csv);
+      renderTable();
+      downloadBtn.disabled = false;
+      addColBtn.disabled = false;
+
+      const relsPath = 'data/rels_data.csv';
+      return fetch(relsPath);
+    })
+    .then(res => res.ok ? res.text() : Promise.reject('No rels found'))
+    .then(relsCsv => {
+      parseRelsCSV(relsCsv);
+      renderRels();
+      addRelBtn.disabled = false;
+    })
+    .catch(err => console.log('Startup loading skipped:', err));
+});
+
+  window.addEventListener('DOMContentLoaded', async () => {
+    const dataUrl  = 'https://raw.githubusercontent.com/mowenuk/prodmgt/main/data/objects.csv';
+    const relsUrl  = 'https://raw.githubusercontent.com/mowenuk/prodmgt/main/data/rels_objects.csv';
+
+    // Load objects.csv
+    try {
+      console.log(`→ Fetching data from ${dataUrl}`);
+      const resp = await fetch(dataUrl);
+      if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+      const csvText = await resp.text();
+      parseCSV(csvText);
+      filename = 'objects.csv';
+      filenameInput.value = filename;
+      renderTable();
+      downloadBtn.disabled = false;
+      addColBtn.disabled = false;
+    } catch (err) {
+      console.error('❌ Error loading objects.csv:', err);
+      alert(
+        'Could not load objects.csv from GitHub:\n' +
+        err.message +
+        '\n\nCheck that the URL is correct and CORS is allowed.'
+      );
+      return;
+    }
+
+    // Load rels_objects.csv
+    try {
+      console.log(`→ Fetching relations from ${relsUrl}`);
+      const resp = await fetch(relsUrl);
+      if (!resp.ok) throw new Error(`${resp.status} ${resp.statusText}`);
+      const relText = await resp.text();
+      parseRelsCSV(relText);
+      renderRels();
+      addRelBtn.disabled = false;
+    } catch (err) {
+      console.error('⚠️ Error loading rels_objects.csv:', err);
+      relsContainer.textContent =
+        'Could not load rels_objects.csv: ' + err.message;
+    }
+  });
+
+
 
     // Initialize
     renderTable(); renderRels();
