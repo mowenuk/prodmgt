@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>CSV Manager</title>
+  <!-- Bootstrap CSS -->
+  <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+  <style>
+    /* Ensure inputs and selects fill their cells */
+    table.table td input.form-control,
+    table.table td select.form-control {
+      width: 100%;
+      min-width: 120px;
+    }
+    /* Prevent text overflow on table cells */
+    table.table td,
+    table.table th {
+      white-space: nowrap;
+      vertical-align: middle;
+    }
+    /* Responsive scrolling for tables */
+    .table-responsive {
+      overflow-x: auto;
+    }
+  </style>
+</head>
+<body class="bg-light">
+  <div class="container py-4">
+    <h2 class="mb-4 text-center">CSV Manager</h2>
+    <div class="form-row align-items-center mb-3">
+      <div class="col-auto"><input type="file" class="form-control-file" id="fileInput" accept=".csv"></div>
+      <div class="col-auto"><input type="file" class="form-control-file" id="relsInput" accept=".csv"></div>
+      <div class="col-auto"><input type="text" class="form-control" id="filenameInput" placeholder="New filename (data.csv)"></div>
+      <div class="col-auto"><button id="downloadBtn" class="btn btn-primary" disabled>Download CSVs</button></div>
+      <div class="col-auto"><button id="addColBtn" class="btn btn-secondary" disabled>Add Column</button></div>
+    </div>
+    <ul class="nav nav-tabs" id="tabNav">
+      <li class="nav-item"><a class="nav-link active" data-toggle="tab" href="#dataTab">Data</a></li>
+      <li class="nav-item"><a class="nav-link" data-toggle="tab" href="#relsTab">Relations</a></li>
+    </ul>
+    <div class="tab-content border p-3">
+      <div id="dataTab" class="tab-pane active mb-3"><div id="tableContainer"></div><button id="addRowBtn" class="btn btn-primary mt-2">Add Data Row</button></div>
+      <div id="relsTab" class="tab-pane mb-3"><div id="relsContainer">No relations loaded.</div><button id="addRelBtn" class="btn btn-primary mt-2" disabled>Add Relation</button></div>
+    </div>
+  </div>
+
+  <!-- Bootstrap JS -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // State
+    let data = [], headers = [], rels = [];
+    let filename = 'data.csv', nextId = 1, nextRelId = 1, selectedId = null;
+    let dataFileOriginalName = null, relsFileOriginalName = null;
+    let downloadedRels = new Set();
+
+    // DOM refs
+    const tableContainer = document.getElementById('tableContainer');
+    const relsContainer = document.getElementById('relsContainer');
+    const fileInput = document.getElementById('fileInput');
+    const relsInput = document.getElementById('relsInput');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const filenameInput = document.getElementById('filenameInput');
+    const addColBtn = document.getElementById('addColBtn');
+    const addRowBtn = document.getElementById('addRowBtn');
+    const addRelBtn = document.getElementById('addRelBtn');
+
+    // Helpers
+    function normalizeKey(raw) {
+      const map = {id:'ID', text:'text', owner:'owner', priority:'Priority', duration:'duration', start_date:'start_date', 'start date':'start_date', progress:'progress', };
+      const k = raw.trim().toLowerCase(); return map[k] || raw;
+    }
+
+    // CSV Parsing
+    function parseCSV(text) {
+      text = text.replace(/^\uFEFF/, '').trim();
+      const lines = text.split(/\r?\n/).filter(l=>l.trim());
+      if (!lines.length) { headers = []; data = []; return; }
+      const raw = lines[0].split(',').map(h=>h.trim());
+      const norm = raw.map(normalizeKey);
+      const hasId = norm.includes('ID');
+      headers = hasId ? [...norm] : ['ID', ...norm];
+      data = lines.slice(1).map((ln, i) => {
+        const vals = ln.split(',').map(v=>v.trim()); const obj = {};
+        headers.forEach(h => {
+          if (h==='ID') obj.ID = hasId ? vals[norm.indexOf('ID')]||'' : i+1;
+          else { const idx = norm.indexOf(h); obj[h] = idx>=0&&idx<vals.length?vals[idx]:''; }
+        }); return obj;
+      });
+      nextId = data.reduce((m,r)=>Math.max(m,parseInt(r.ID)||0),0)+1;
+    }
+    function parseRelsCSV(text) {
+      const lines = text.split(/\r?\n/).filter(l=>l.trim());
+      rels = lines.slice(1).map(ln => {
+        const [id,name,source,target,type,type_name] = ln.split(',').map(v=>v.trim());
+        return {id,name,source,target,type,type_name};
+      });
+      nextRelId = rels.reduce((m,r)=>Math.max(m,parseInt(r.id)||0),0)+1;
+    }
+
+    // CSV Generation
+    function generateCSV() { return headers.join(',') + '\n' + data.map(r=>headers.map(h=>r[h]||'').join(',')).join('\n'); }
+
+    // Render Data Table
+    function renderTable() {
+      tableContainer.innerHTML=''; const tbl=document.createElement('table'); tbl.className='table table-bordered';
+      const headRow=tbl.createTHead().insertRow(); headers.forEach(h=>headRow.insertCell().textContent=h); headRow.insertCell().textContent='Actions';
+      const tb=tbl.createTBody();
+      data.forEach((r,i)=>{
+        const row=tb.insertRow(); row.className=String(r.ID)===String(selectedId)?'table-primary':'';
+        headers.forEach(h=>row.insertCell().appendChild(createDataCell(r,i,h)));
+        const op=row.insertCell();
+        const sel=document.createElement('button'); sel.textContent='Select'; sel.className='btn btn-sm btn-info mr-1';
+        sel.onclick=()=>{ selectedId=r.ID; renderTable(); renderRels(); addRelBtn.disabled=false; };
+        const del=document.createElement('button'); del.textContent='Delete'; del.className='btn btn-sm btn-danger';
+        del.onclick=()=>{ data.splice(i,1); if(String(r.ID)===String(selectedId)) selectedId=null; renderTable(); renderRels(); };
+        op.append(sel,del);
+      });
+      tableContainer.appendChild(tbl);
+    }
+    function createDataCell(rowData,rowIndex,header){
+      if(header==='ID'){ const d=document.createElement('div'); d.textContent=rowData[header]; return d; }
+      let el; const low=header.toLowerCase();
+      if(low.includes('priority')){ el=document.createElement('select'); ['High','Medium','Low'].forEach(opt=>{const o=document.createElement('option');o.value=o.text=opt;if(rowData[header]===opt)o.selected=true;el.appendChild(o);}); }
+      else if(low.includes('duration')){ el=document.createElement('input'); el.type='number'; el.value=rowData[header]||''; }
+      else if(low.includes('date')){ el=document.createElement('input'); el.type='date'; const d=new Date(rowData[header]); el.value=!isNaN(d)?d.toISOString().split('T')[0]:''; }
+      else{ el=document.createElement('input'); el.type='text'; el.value=rowData[header]||''; }
+      el.className='form-control'; el.dataset.row=rowIndex; el.dataset.field=header;
+      el.addEventListener(el.tagName==='SELECT'?'change':'input',e=>{ data[rowIndex][header]=e.target.value; });
+      return el;
+    }
+
+    // Render Relations Table
+    function renderRels(){
+      relsContainer.innerHTML=''; if(!selectedId){ relsContainer.textContent='Select a data row to view relations.'; return; }
+      const filt=rels.filter(r=>String(r.source)===String(selectedId));
+      const tbl=document.createElement('table'); tbl.className='table table-bordered';
+      const cols=['id','name','source','target','type','type_name']; const head=tbl.createTHead().insertRow(); cols.forEach(c=>head.insertCell().textContent=c); head.insertCell().textContent='Actions';
+      const tb=tbl.createTBody();
+      filt.forEach((rel,i)=>{
+        const row=tb.insertRow(); cols.forEach(c=>row.insertCell().appendChild(createRelCell(rel,i,c)));
+        const op=row.insertCell(); const del=document.createElement('button'); del.textContent='Delete'; del.className='btn btn-sm btn-danger'; del.onclick=()=>{ rels=rels.filter(x=>x.id!==rel.id); renderRels(); };
+        op.appendChild(del);
+      }); relsContainer.appendChild(tbl);
+    }
+    function createRelCell(relData,relIndex,field){
+      if(field==='id'||field==='source'){ const d=document.createElement('div'); d.textContent=relData[field]; return d; }
+      const el=document.createElement('input'); el.type='text'; el.value=relData[field]||''; el.className='form-control'; el.dataset.rel=relIndex; el.dataset.field=field;
+      el.addEventListener('input',e=>{ rels=rels.map(x=>x.id===relData.id?{...x,[field]:e.target.value}:x); }); return el;
+    }
+
+    // File Loaders
+    fileInput.addEventListener('change',e=>{ const f=e.target.files[0]; if(!f)return; dataFileOriginalName=f.name; filename=f.name; filenameInput.value=f.name; const r=new FileReader(); r.onload=evt=>{ parseCSV(r.result); downloadBtn.disabled=false; addColBtn.disabled=false; renderTable(); }; r.readAsText(f); });
+    relsInput.addEventListener('change',e=>{ const f=e.target.files[0]; if(!f)return; relsFileOriginalName=f.name; const r=new FileReader(); r.onload=evt=>{ parseRelsCSV(r.result); renderRels(); addRelBtn.disabled=false; }; r.readAsText(f); });
+
+    // CRUD
+    addRowBtn.onclick=()=>{ const o={ID:nextId++}; headers.forEach(h=>{ if(h!=='ID')o[h]=''; }); data.push(o); renderTable(); };
+    addRelBtn.onclick=()=>{ if(!selectedId)return; const nr={id:String(nextRelId++),name:'',source:String(selectedId),target:'',type:'',type_name:''}; rels.push(nr); renderRels(); };
+
+    // Download Handler
+    filenameInput.addEventListener('input',()=>{ if(filenameInput.value.trim()) downloadBtn.disabled=false; });
+    downloadBtn.addEventListener('click',()=>{
+      const base = filenameInput.value.trim() || dataFileOriginalName;
+      const dataName = base;
+      const dataBlob = new Blob([generateCSV()], {type:'text/csv'});
+      const a = document.createElement('a'); a.href = URL.createObjectURL(dataBlob); a.download = dataName; a.click();
+
+      let relName;
+      if (relsFileOriginalName && base === dataFileOriginalName) relName = relsFileOriginalName;
+      else relName = dataName.replace(/\.csv$/i,'') + '_rels.csv';
+      const relLines = [['id','name','source','target','type','type_name'].join(',')]
+        .concat(rels.map(r=>['id','name','source','target','type','type_name'].map(c=>r[c]||'').join(',')));
+      const relBlob = new Blob([relLines.join('\n')], { type:'text/csv' });
+      const b = document.createElement('a'); b.href = URL.createObjectURL(relBlob); b.download = relName; b.click();
+    });
+
+    // Initialize
+    renderTable(); renderRels();
+  </script>
+</body>
+</html>
