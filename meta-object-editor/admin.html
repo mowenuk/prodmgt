@@ -703,21 +703,25 @@ window.addEventListener('DOMContentLoaded', () => {
   }
 
   // ── SCHEMA: LOAD, RENDER, EDIT, SAVE ─────────────────────────────────
-  function loadSchemaFromData(data) {
-    schemaRows = data.map(r => ({
-      id:        r.id,
-      name:      r.name,
-      label:     r.label,
-      type_IDs:  (r.type_IDs||'').split(',').map(s=>s.trim()),
-      dataType:  r.dataType,
-      widget:    r.widget,
-      options: (r.options||'').split(',').map(s=>s.trim()),
-      group:     r.group||'',
-      layout:    r.layout||'full-width',
-      system:    String(r.system||'').toLowerCase()==='true'
-    }));
-    renderSchema();
-  }
+ function loadSchemaFromData(data) {
+  schemaRows = data.map(r => ({
+    id:        r.id,
+    name:      r.name,
+    label:     r.label,
+    type_IDs:  (r.type_IDs || '').split(',').map(s => s.trim()),
+    dataType:  r.dataType,
+    widget:    r.widget,
+    options:   // split the CSV cell into an array for **all** widgets
+      (r.options || '')
+        .split(',')
+        .map(s => s.trim())
+        .filter(s => s !== ''),
+    group:     r.group || '',
+    layout:    r.layout || 'full-width',
+    system:    String(r.system || '').toLowerCase() === 'true'
+  }));
+  renderSchema();
+}
   document.getElementById('loadSchemaBtn').addEventListener('click', () => {
     const f = document.getElementById('schemaFile').files[0];
     if (!f) return;
