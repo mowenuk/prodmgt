@@ -1029,174 +1029,199 @@ function renderPreviewForm() {
   const form   = document.getElementById('previewForm');
   form.innerHTML = '';
 
-  // 1) Header
-  const mt = metaTypes.find(m=>m.id===typeId) || {};
+  // ─── 1) Header: meta-type name + ID ─────────────────────────────
+  const mt = metaTypes.find(m => m.id === typeId) || {};
   const headerDiv = document.createElement('div');
   headerDiv.className = 'mb-4';
   const titleEl = document.createElement('h4');
   titleEl.className = 'd-flex align-items-baseline';
-  titleEl.append(mt.name || '');
+  titleEl.appendChild(document.createTextNode(mt.name || ''));
   const idEl = document.createElement('small');
   idEl.className = 'text-secondary ms-2';
   idEl.textContent = `ID: ${mt.id || ''}`;
-  titleEl.append(idEl);
-  headerDiv.append(titleEl);
-  form.append(headerDiv);
+  titleEl.appendChild(idEl);
+  headerDiv.appendChild(titleEl);
+  form.appendChild(headerDiv);
 
-  // 2) Grouping
+  // ─── 2) Grouping (skip id & object_type) ────────────────────────
   const grouped = {};
   schemaRows.forEach(r => {
-    if (r.name==='id' || r.name==='object_type') return;
-    if (!r.type_IDs.includes(typeId) || r.layout==='hidden') return;
+    if (r.name === 'id' || r.name === 'object_type') return;
+    if (!r.type_IDs.includes(typeId) || r.layout === 'hidden') return;
     const grp = r.group || 'Default';
-    (grouped[grp] = grouped[grp]||[]).push(r);
+    (grouped[grp] = grouped[grp] || []).push(r);
   });
 
-  // 3) Accordion container
+  // ─── 3) Build the accordion ─────────────────────────────────────
   const accordion = document.createElement('div');
   accordion.className = 'accordion';
-  accordion.id = 'previewAccordion';
+  accordion.id        = 'previewAccordion';
 
   Object.entries(grouped).forEach(([groupName, fields], gIdx) => {
-    const groupId = `group${gIdx}`;
-    const forceFull = fields.length === 1;
+    const groupId  = `group${gIdx}`;
+    const onlyOne  = fields.length === 1;
 
-    // 3a) Item & header
+    // 3a) Accordion item + header
     const item = document.createElement('div');
     item.className = 'accordion-item';
+
     const hdr = document.createElement('h2');
     hdr.className = 'accordion-header';
     const btn = document.createElement('button');
-    btn.className = `accordion-button${gIdx>0?' collapsed':''}`;
+    btn.className = `accordion-button${gIdx > 0 ? ' collapsed' : ''}`;
     btn.type = 'button';
-    btn.setAttribute('data-bs-toggle','collapse');
+    btn.setAttribute('data-bs-toggle', 'collapse');
     btn.setAttribute('data-bs-target', `#collapse-${groupId}`);
     btn.textContent = groupName;
-    hdr.append(btn);
-    item.append(hdr);
+    hdr.appendChild(btn);
+    item.appendChild(hdr);
 
-    // 3b) Body
+    // 3b) Collapsible body
     const collapse = document.createElement('div');
     collapse.id = `collapse-${groupId}`;
-    collapse.className = `accordion-collapse collapse${gIdx===0?' show':''}`;
-    collapse.setAttribute('data-bs-parent','#previewAccordion');
+    collapse.className = `accordion-collapse collapse${gIdx === 0 ? ' show' : ''}`;
+    collapse.setAttribute('data-bs-parent', '#previewAccordion');
+
     const body = document.createElement('div');
     body.className = 'accordion-body';
     const row  = document.createElement('div');
     row.className = 'row g-3';
 
-    // 3c) Fields
+    // 3c) Fields loop
     fields.forEach(r => {
       const col = document.createElement('div');
       // layout
-      const key = forceFull ? 'full-width' : r.layout;
-      switch (key) {
-        case 'half-left': case 'half-right': col.className='col-md-6'; break;
-        case 'one-third':      col.className='col-md-4'; break;
-        case 'two-thirds':     col.className='col-md-8'; break;
-        case 'quarter':        col.className='col-md-3'; break;
-        case 'three-quarters': col.className='col-md-9'; break;
-        case 'inline': case 'auto': col.className='col-auto'; break;
-        default:                col.className='col-12';
+      const layoutKey = onlyOne ? 'full-width' : r.layout;
+      switch (layoutKey) {
+        case 'half-left':
+        case 'half-right':        col.className = 'col-md-6'; break;
+        case 'one-third':         col.className = 'col-md-4'; break;
+        case 'two-thirds':        col.className = 'col-md-8'; break;
+        case 'quarter':           col.className = 'col-md-3'; break;
+        case 'three-quarters':    col.className = 'col-md-9'; break;
+        case 'inline':
+        case 'auto':              col.className = 'col-auto'; break;
+        default:                  col.className = 'col-12';
       }
 
       const wrap = document.createElement('div');
-      wrap.className = r.widget==='checkbox'
+      wrap.className = (r.widget === 'checkbox')
         ? 'form-check form-switch mt-2'
         : 'mb-3';
 
-      // 4) Formula Editor
-      if (r.widget==='formula editor') {
+      // ───────────── Formula editor branch ─────────────────────
+      if (r.widget === 'formula editor') {
+        // label
+        const lbl = document.createElement('label');
+        lbl.className = 'form-label';
+        lbl.textContent = r.label || r.name;
+        wrap.appendChild(lbl);
+
+        // output
         const out = document.createElement('div');
         out.id = `formula-${r.id}`;
         out.className = 'form-control-plaintext';
-        wrap.append(out);
-      } else {
-        // non-checkbox label
-        if (r.widget!=='checkbox') {
-          const lbl = document.createElement('label');
-          lbl.className = 'form-label';
-          lbl.textContent = r.label||r.name;
-          wrap.append(lbl);
-        }
+        wrap.appendChild(out);
 
-        // input/select...
-        let inputEl;
-        switch (r.widget) {
-          case 'text input':
-            inputEl = document.createElement('input');
-            inputEl.type='text';
-            inputEl.className='form-control';
-            if(r.options[0]) inputEl.value=r.options[0];
-            break;
-          case 'spinner':
-            inputEl = document.createElement('input');
-            inputEl.type='number';
-            inputEl.className='form-control';
-            if(r.options[0]) inputEl.value=r.options[0];
-            break;
-          case 'date picker':
-            inputEl = document.createElement('input');
-            inputEl.type='date';
-            inputEl.className='form-control';
-            break;
-          case 'checkbox':
-            inputEl = document.createElement('input');
-            inputEl.type='checkbox';
-            inputEl.className='form-check-input';
-            wrap.append(inputEl);
-            const chk = document.createElement('label');
-            chk.className='form-check-label ms-2';
-            chk.textContent=r.label||r.name;
-            wrap.append(chk);
-            break;
-          case 'single select':
-          case 'select':
-            inputEl = document.createElement('select');
-            inputEl.className='form-select';
-            r.options.forEach(o=>{
-              const opt=new Option(o,o);
-              inputEl.append(opt);
-            });
-            break;
-          case 'multi-select':
-            inputEl = document.createElement('select');
-            inputEl.className='form-select';
-            inputEl.multiple=true;
-            r.options.forEach(o=>{
-              const opt=new Option(o,o);
-              opt.selected = true;
-              inputEl.append(opt);
-            });
-            break;
-          default:
-            inputEl = document.createElement('input');
-            inputEl.type='text';
-            inputEl.className='form-control';
-        }
-
-        if (inputEl) {
-          inputEl.id = `input-${r.id}`;
-          wrap.append(inputEl);
-        }
+        col.appendChild(wrap);
+        row.appendChild(col);
+        // skip the rest
+        return;
       }
 
-      col.append(wrap);
-      row.append(col);
+      // ─── Non-formula: generic label (unless checkbox) ───────────
+      if (r.widget !== 'checkbox') {
+        const lbl = document.createElement('label');
+        lbl.className = 'form-label';
+        lbl.textContent = r.label || r.name;
+        wrap.appendChild(lbl);
+      }
+
+      // ─── Build the correct input/control ────────────────────────
+      let inputEl;
+      switch (r.widget) {
+        case 'text input':
+          inputEl = document.createElement('input');
+          inputEl.type = 'text';
+          inputEl.className = 'form-control';
+          if (r.options[0]) inputEl.value = r.options[0];
+          break;
+
+        case 'spinner':
+          inputEl = document.createElement('input');
+          inputEl.type = 'number';
+          inputEl.className = 'form-control';
+          if (r.options[0]) inputEl.value = r.options[0];
+          break;
+
+        case 'date picker':
+          inputEl = document.createElement('input');
+          inputEl.type = 'date';
+          inputEl.className = 'form-control';
+          break;
+
+        case 'checkbox':
+          inputEl = document.createElement('input');
+          inputEl.type = 'checkbox';
+          inputEl.className = 'form-check-input';
+          wrap.appendChild(inputEl);
+          const chkLbl = document.createElement('label');
+          chkLbl.className = 'form-check-label ms-2';
+          chkLbl.textContent = r.label || r.name;
+          wrap.appendChild(chkLbl);
+          break;
+
+        case 'single select':
+        case 'select':
+          inputEl = document.createElement('select');
+          inputEl.className = 'form-select';
+          r.options.forEach(optText => {
+            inputEl.appendChild(new Option(optText, optText));
+          });
+          break;
+
+        case 'multi-select':
+          inputEl = document.createElement('select');
+          inputEl.className = 'form-select';
+          inputEl.multiple = true;
+          r.options.forEach(optText => {
+            const o = new Option(optText, optText);
+            o.selected = true;
+            inputEl.appendChild(o);
+          });
+          break;
+
+        // … handle other widget types here as needed …
+
+        default:
+          inputEl = document.createElement('input');
+          inputEl.type = 'text';
+          inputEl.className = 'form-control';
+      }
+
+      // every non-formula input needs an ID for formula listeners
+      if (inputEl) {
+        inputEl.id = `input-${r.id}`;
+        wrap.appendChild(inputEl);
+      }
+
+      col.appendChild(wrap);
+      row.appendChild(col);
     });
 
-    body.append(row);
-    collapse.append(body);
-    item.append(collapse);
-    accordion.append(item);
+    body.appendChild(row);
+    collapse.appendChild(body);
+    item.appendChild(collapse);
+    accordion.appendChild(item);
   });
 
-  form.append(accordion);
+  form.appendChild(accordion);
 
-  // 5) Finally hook formulas
+  // ─── 4) Wire & compute formulas ───────────────────────────────
   attachFormulaListeners();
   evaluateAllFormulas();
 }
+
 
   // ── SAVE ALL BUTTON ─────────────────────────────────────────────────
   document.getElementById('saveAllBtn').addEventListener('click', () => {
