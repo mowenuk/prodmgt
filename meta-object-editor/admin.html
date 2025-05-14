@@ -383,7 +383,7 @@
       metaRels    = [],
       schemaRows  = [];
 
-  const dataTypeOptions = ['short text','long text','integer','date','percentage','boolean'];
+  const dataTypeOptions = ['short text','long text','integer','date','percentage','boolean', 'formula'];
 
   const widgetsByDataType = {
     'short text':   ['text input','select','single select','multi-select'],
@@ -391,7 +391,8 @@
     'integer':      ['text input','spinner','stepper','range slider'],
     'date':         ['date picker','time picker','month picker','week picker'],
     'percentage':   ['progress bar','editable progress bar','dial gauge'],
-    'boolean':      ['checkbox','radio group','toggle buttons']
+    'boolean':      ['checkbox','radio group','toggle buttons'],
+    'formula':      ['formula editor']
   };
   const widgetHelpText = {
     'text input': 'For prefix/suffix use "Before:symbol, placeholder" or "After:symbol, placeholder".',
@@ -841,7 +842,52 @@ function renderSchema() {
     // ───── Options ─────────────────────────────────
     (() => {
       const optTd = document.createElement('td');
-      if (userOptionWidgets.includes(r.widget)) {
+
+      if (r.widget === 'formula editor') {
+        // build list of all numeric/date fields
+        const candidates = schemaRows.filter(f =>
+          ['integer','date','percentage'].includes(f.dataType)
+        );
+
+        // 1) Field A selector
+        const fldA = document.createElement('select');
+        fldA.className = 'form-select form-select-sm mb-1';
+        candidates.forEach(f => {
+          const o = new Option(f.label || f.name, f.id);
+          if (r.options[0] === f.id) o.selected = true;
+          fldA.appendChild(o);
+        });
+        fldA.addEventListener('change', () => {
+          r.options[0] = fldA.value;
+        });
+        optTd.appendChild(fldA);
+
+        // 2) Operator selector
+        const op = document.createElement('select');
+        op.className = 'form-select form-select-sm mb-1';
+        ['+','-','*','/'].forEach(sym => {
+          const o = new Option(sym, sym);
+          if (r.options[1] === sym) o.selected = true;
+          op.appendChild(o);
+        });
+        op.addEventListener('change', () => {
+          r.options[1] = op.value;
+        });
+        optTd.appendChild(op);
+
+        // 3) Field B selector
+        const fldB = document.createElement('select');
+        fldB.className = 'form-select form-select-sm';
+        candidates.forEach(f => {
+          const o = new Option(f.label || f.name, f.id);
+          if (r.options[2] === f.id) o.selected = true;
+          fldB.appendChild(o);
+        });
+        fldB.addEventListener('change', () => {
+          r.options[2] = fldB.value;
+        });
+        optTd.appendChild(fldB);
+      } else if (userOptionWidgets.includes(r.widget)) {
         // text input for comma-separated options
         const optIn = document.createElement('input');
         optIn.type        = 'text';
@@ -977,375 +1023,180 @@ function renderSchema() {
     sel.onchange = renderPreviewForm;
     if (sel.options.length) { sel.selectedIndex=0; renderPreviewForm(); }
   }
+// ─── Full renderPreviewForm() ──────────────────────────────
 function renderPreviewForm() {
   const typeId = document.getElementById('previewTypeSelect').value;
   const form   = document.getElementById('previewForm');
   form.innerHTML = '';
 
-   // --- Render the meta‐type name & ID at the top ---
-  // Lookup the current meta-type
-const mt = metaTypes.find(mt => mt.id === typeId) || {};
+  // 1) Header
+  const mt = metaTypes.find(m=>m.id===typeId) || {};
+  const headerDiv = document.createElement('div');
+  headerDiv.className = 'mb-4';
+  const titleEl = document.createElement('h4');
+  titleEl.className = 'd-flex align-items-baseline';
+  titleEl.append(mt.name || '');
+  const idEl = document.createElement('small');
+  idEl.className = 'text-secondary ms-2';
+  idEl.textContent = `ID: ${mt.id || ''}`;
+  titleEl.append(idEl);
+  headerDiv.append(titleEl);
+  form.append(headerDiv);
 
-// Create header container
-const headerDiv = document.createElement('div');
-headerDiv.className = 'mb-4';
-
-// Create a single <h4> that holds both name and ID
-const titleEl = document.createElement('h4');
-titleEl.className = 'd-flex align-items-baseline';
-
-// Meta-type name
-const nameNode = document.createTextNode(mt.name || '');
-titleEl.appendChild(nameNode);
-
-// ID as a muted <small> right next to it
-const idEl = document.createElement('small');
-idEl.className = 'text-secondary ms-2';
-idEl.textContent = `ID: ${mt.id || ''}`;
-titleEl.appendChild(idEl);
-
-// Append the title to the header
-headerDiv.appendChild(titleEl);
-form.appendChild(headerDiv);
-
-  // --- Group attributes by “group”, but skip id & object_type entirely ---
+  // 2) Grouping
   const grouped = {};
   schemaRows.forEach(r => {
-      // 1) Don’t group the header fields
-      if (r.name === 'id' || r.name === 'object_type') return;
-
-      // 2) Only include fields for this type and not hidden
-    if (!r.type_IDs.includes(typeId) || r.layout === 'hidden') return;
+    if (r.name==='id' || r.name==='object_type') return;
+    if (!r.type_IDs.includes(typeId) || r.layout==='hidden') return;
     const grp = r.group || 'Default';
-    (grouped[grp] = grouped[grp] || []).push(r);
+    (grouped[grp] = grouped[grp]||[]).push(r);
   });
 
-  // 2) Build accordion
+  // 3) Accordion container
   const accordion = document.createElement('div');
   accordion.className = 'accordion';
   accordion.id = 'previewAccordion';
 
   Object.entries(grouped).forEach(([groupName, fields], gIdx) => {
     const groupId = `group${gIdx}`;
-    const forceFullWidth = fields.length === 1;  // <-- our tweak
+    const forceFull = fields.length === 1;
 
-    // Accordion header...
-    const item     = document.createElement('div'); item.className = 'accordion-item';
-    const header   = document.createElement('h2');  header.className = 'accordion-header';
-    const btn      = document.createElement('button');
-    btn.className  = `accordion-button${gIdx>0?' collapsed':''}`;
-    btn.type       = 'button';
+    // 3a) Item & header
+    const item = document.createElement('div');
+    item.className = 'accordion-item';
+    const hdr = document.createElement('h2');
+    hdr.className = 'accordion-header';
+    const btn = document.createElement('button');
+    btn.className = `accordion-button${gIdx>0?' collapsed':''}`;
+    btn.type = 'button';
     btn.setAttribute('data-bs-toggle','collapse');
-    btn.setAttribute('data-bs-target',`#collapse-${groupId}`);
-    btn.innerText  = `Group: ${groupName}`;
-    header.appendChild(btn);
+    btn.setAttribute('data-bs-target', `#collapse-${groupId}`);
+    btn.textContent = groupName;
+    hdr.append(btn);
+    item.append(hdr);
 
-    // Accordion body...
+    // 3b) Body
     const collapse = document.createElement('div');
-    collapse.id    = `collapse-${groupId}`;
+    collapse.id = `collapse-${groupId}`;
     collapse.className = `accordion-collapse collapse${gIdx===0?' show':''}`;
     collapse.setAttribute('data-bs-parent','#previewAccordion');
-
     const body = document.createElement('div');
     body.className = 'accordion-body';
     const row  = document.createElement('div');
     row.className = 'row g-3';
 
-    // 3) Render each field
+    // 3c) Fields
     fields.forEach(r => {
       const col = document.createElement('div');
-
-      // ---- HERE: use forceFullWidth to override lone fields ----
-      const layoutKey = forceFullWidth ? 'full-width' : r.layout;
-      switch (layoutKey) {
-        case 'half-left':
-        case 'half-right':
-          col.className = 'col-md-6';
-          break;
-        case 'one-third':
-          col.className = 'col-md-4';
-          break;
-        case 'two-thirds':
-          col.className = 'col-md-8';
-          break;
-        case 'quarter':
-          col.className = 'col-md-3';
-          break;
-        case 'three-quarters':
-          col.className = 'col-md-9';
-          break;
-        case 'inline':
-        case 'auto':
-          col.className = 'col-auto';
-          break;
-        default:
-          col.className = 'col-12';
+      // layout
+      const key = forceFull ? 'full-width' : r.layout;
+      switch (key) {
+        case 'half-left': case 'half-right': col.className='col-md-6'; break;
+        case 'one-third':      col.className='col-md-4'; break;
+        case 'two-thirds':     col.className='col-md-8'; break;
+        case 'quarter':        col.className='col-md-3'; break;
+        case 'three-quarters': col.className='col-md-9'; break;
+        case 'inline': case 'auto': col.className='col-auto'; break;
+        default:                col.className='col-12';
       }
 
-
-      // ---- rest of your existing field rendering ----
-      const wrapper = document.createElement('div');
-      wrapper.className = r.widget === 'checkbox'
+      const wrap = document.createElement('div');
+      wrap.className = r.widget==='checkbox'
         ? 'form-check form-switch mt-2'
         : 'mb-3';
 
-      // Label
-      const label = document.createElement('label');
-      label.className = r.widget === 'checkbox'
-        ? 'form-check-label ms-2'
-        : 'form-label';
-      label.textContent = r.label || r.name;
-      let input;
-
-      switch (r.widget) {
-        // ─ Text + Number Inputs ───────────────────────────
-        case 'text input':
-        case 'spinner': {
-          wrapper.appendChild(label);
-          // parse prefix/suffix
-          let before = '', after = '', placeholder = '';
-          if (r.options.length) {
-            const [posOpt, placeOpt] = r.options;
-            const [k,v] = posOpt.split(':').map(s=>s.trim());
-            if (k.toLowerCase()==='before') before = v;
-            else if (k.toLowerCase()==='after') after = v;
-            placeholder = (placeOpt||'').trim();
-          }
-          if (before||after) {
-            const grp = document.createElement('div');
-            grp.className = 'input-group';
-            if (before) {
-              const sp = document.createElement('span');
-              sp.className = 'input-group-text';
-              sp.textContent = before;
-              grp.appendChild(sp);
-            }
-            input = document.createElement('input');
-            input.type = r.widget==='spinner'?'number':'text';
-            input.className = 'form-control';
-            if (placeholder) input.placeholder = placeholder;
-            grp.appendChild(input);
-            if (after) {
-              const sp = document.createElement('span');
-              sp.className = 'input-group-text';
-              sp.textContent = after;
-              grp.appendChild(sp);
-            }
-            wrapper.appendChild(grp);
-          } else {
-            input = document.createElement('input');
-            input.type = r.widget==='spinner'?'number':'text';
-            input.className = 'form-control';
-            if (r.options[0]) input.placeholder = r.options[0];
-            wrapper.appendChild(input);
-          }
-          break;
+      // 4) Formula Editor
+      if (r.dataType==='formula' && r.widget==='formula editor') {
+        const out = document.createElement('div');
+        out.id = `formula-${r.id}`;
+        out.className = 'form-control-plaintext';
+        wrap.append(out);
+      } else {
+        // non-checkbox label
+        if (r.widget!=='checkbox') {
+          const lbl = document.createElement('label');
+          lbl.className = 'form-label';
+          lbl.textContent = r.label||r.name;
+          wrap.append(lbl);
         }
 
-        // ─ Rich Text (Quill) ──────────────────────────────
-        case 'rich text': {
-          wrapper.appendChild(label);
-          const ed = document.createElement('div');
-          ed.id = `rich-editor-${r.id}`;
-          ed.className = 'form-control';
-          ed.style.minHeight = '120px';
-          wrapper.appendChild(ed);
-          setTimeout(() => {
-            const q = new Quill(ed, {
-              theme: 'snow',
-              placeholder: r.options[0]||''
+        // input/select...
+        let inputEl;
+        switch (r.widget) {
+          case 'text input':
+            inputEl = document.createElement('input');
+            inputEl.type='text';
+            inputEl.className='form-control';
+            if(r.options[0]) inputEl.value=r.options[0];
+            break;
+          case 'spinner':
+            inputEl = document.createElement('input');
+            inputEl.type='number';
+            inputEl.className='form-control';
+            if(r.options[0]) inputEl.value=r.options[0];
+            break;
+          case 'date picker':
+            inputEl = document.createElement('input');
+            inputEl.type='date';
+            inputEl.className='form-control';
+            break;
+          case 'checkbox':
+            inputEl = document.createElement('input');
+            inputEl.type='checkbox';
+            inputEl.className='form-check-input';
+            wrap.append(inputEl);
+            const chk = document.createElement('label');
+            chk.className='form-check-label ms-2';
+            chk.textContent=r.label||r.name;
+            wrap.append(chk);
+            break;
+          case 'single select':
+          case 'select':
+            inputEl = document.createElement('select');
+            inputEl.className='form-select';
+            r.options.forEach(o=>{
+              const opt=new Option(o,o);
+              inputEl.append(opt);
             });
-            if (r.options[0]) q.setText(r.options[0]);
-            quillEditors[r.id] = q;
-          },0);
-          break;
-        }
-
-        // ─ Textarea ────────────────────────────────────────
-        case 'textarea':
-          wrapper.appendChild(label);
-          input = document.createElement('textarea');
-          input.className = 'form-control';
-          if (r.options[0]) input.value = r.options[0];
-          wrapper.appendChild(input);
-          break;
-
-        // ─ Stepper ──────────────────────────────────────────
-        case 'stepper': {
-          wrapper.appendChild(label);
-          const grp = document.createElement('div');
-          grp.className = 'input-group';
-          const dec = document.createElement('button');
-          dec.type='button'; dec.className='btn btn-outline-secondary'; dec.textContent='−';
-          const num = document.createElement('input');
-          num.type='number'; num.className='form-control';
-          const inc = document.createElement('button');
-          inc.type='button'; inc.className='btn btn-outline-secondary'; inc.textContent='+';
-          dec.onclick = () => num.value = (parseFloat(num.value)||0) - 1;
-          inc.onclick = () => num.value = (parseFloat(num.value)||0) + 1;
-          grp.append(dec,num,inc);
-          wrapper.appendChild(grp);
-          break;
-        }
-
-        // ─ Range Slider ─────────────────────────────────────
-        case 'range slider':
-          wrapper.appendChild(label);
-          input = document.createElement('input');
-          input.type='range'; input.className='form-range';
-          if (r.options[0]) input.min = r.options[0];
-          if (r.options[1]) input.max = r.options[1];
-          if (r.options[2]) input.step = r.options[2];
-          wrapper.appendChild(input);
-          break;
-
-        // ─ Date/Time Pickers ─────────────────────────────────
-        case 'date picker':
-        case 'time picker':
-        case 'datetime-local':
-        case 'month picker':
-        case 'week picker':
-          wrapper.appendChild(label);
-          input = document.createElement('input');
-          input.type = r.widget.replace(' picker','');
-          input.className='form-control';
-          wrapper.appendChild(input);
-          break;
-
-        // ─ Checkbox ──────────────────────────────────────────
-        case 'checkbox':
-          input = document.createElement('input');
-          input.type='checkbox'; input.className='form-check-input';
-          wrapper.appendChild(input);
-          wrapper.appendChild(label);
-          break;
-
-        // ─ Radio / Toggle ───────────────────────────────────
-        case 'radio group':
-        case 'toggle buttons': {
-          wrapper.appendChild(label);
-          const choices = (r.options[0]||'').split(',').map(s=>s.trim());
-          if (r.widget==='toggle buttons') {
-            const btnGrp = document.createElement('div');
-            btnGrp.className='btn-group';
-            choices.forEach(opt => {
-              const lb = document.createElement('label');
-              lb.className='btn btn-outline-primary';
-              const ip = document.createElement('input');
-              ip.type='radio'; ip.name=r.id; lb.appendChild(ip);
-              lb.append(opt);
-              btnGrp.appendChild(lb);
+            break;
+          case 'multi-select':
+            inputEl = document.createElement('select');
+            inputEl.className='form-select';
+            inputEl.multiple=true;
+            r.options.forEach(o=>{
+              const opt=new Option(o,o);
+              opt.selected = true;
+              inputEl.append(opt);
             });
-            wrapper.appendChild(btnGrp);
-          } else {
-            choices.forEach(opt => {
-              const div = document.createElement('div');
-              div.className='form-check';
-              const ip = document.createElement('input');
-              ip.className='form-check-input'; ip.type='radio'; ip.name=r.id;
-              const lb = document.createElement('label');
-              lb.className='form-check-label'; lb.textContent=opt;
-              div.append(ip,lb);
-              wrapper.appendChild(div);
-            });
-          }
-          break;
+            break;
+          default:
+            inputEl = document.createElement('input');
+            inputEl.type='text';
+            inputEl.className='form-control';
         }
 
-        // ─ Select Inputs ─────────────────────────────────────
-        case 'select':
- case 'single select':
-  wrapper.appendChild(label);
-  input = document.createElement('select');
-  input.className = 'form-select';
-  // add every choice, select the first as default
-  r.options.forEach((optText, idx) => {
-    const opt = document.createElement('option');
-    opt.value = opt.textContent = optText;
-    if (idx === 0) opt.selected = true;
-    input.appendChild(opt);
-  });
-  wrapper.appendChild(input);
-  break;
-
-case 'multi-select':
-  wrapper.appendChild(label);
-  input = document.createElement('select');
-  input.className = 'form-select';
-  input.multiple = true;
-  // add every choice, and mark all of them selected by default
-  r.options.forEach(optText => {
-    const opt = document.createElement('option');
-    opt.value = opt.textContent = optText;
-    opt.selected = true;
-    input.appendChild(opt);
-  });
-  wrapper.appendChild(input);
-  break;
-
-        // ─ Progress Bar ─────────────────────────────────────
-        case 'progress bar': {
-          wrapper.appendChild(label);
-          let maxVal = 100;
-          const segs = [];
-          r.options.forEach(opt => {
-            const [k,v] = opt.split(':').map(s=>s.trim());
-            if (k.toLowerCase()==='max') maxVal = parseFloat(v)||maxVal;
-            else segs.push(opt);
-          });
-          const pc = document.createElement('div');
-          pc.className='progress';
-          segs.forEach(opt => {
-            const [val,txt,clr] = opt.split(':').map(s=>s.trim());
-            const pct = (parseFloat(val)||0)/maxVal*100;
-            const bc  = BS_COLOR_MAP[(clr||'').toLowerCase()];
-            const bar = document.createElement('div');
-            bar.className = 'progress-bar' + (bc?` bg-${bc}`:'');
-            bar.style.width = pct+'%';
-            if (txt) bar.textContent = txt;
-            pc.appendChild(bar);
-          });
-          wrapper.appendChild(pc);
-          break;
+        if (inputEl) {
+          inputEl.id = `input-${r.id}`;
+          wrap.append(inputEl);
         }
-
-        // ─ Dial Gauge ───────────────────────────────────────
-        case 'dial gauge':
-          wrapper.appendChild(label);
-          const gd = document.createElement('div');
-          gd.id = `gauge-${r.id}`;
-          gd.style.width='200px'; gd.style.height='160px';
-          wrapper.appendChild(gd);
-          setTimeout(()=> new JustGage({
-            id: gd.id,
-            value: (parseFloat(r.options[0])||0 + parseFloat(r.options[1])||100)/2,
-            min: parseFloat(r.options[0])||0,
-            max: parseFloat(r.options[1])||100,
-            title: '', label:'', pointer:true, gaugeWidthScale:0.6
-          }), 0);
-          break;
-
-        default:
-          wrapper.appendChild(label);
-          input = document.createElement('input');
-          input.type='text'; input.className='form-control';
-          wrapper.appendChild(input);
       }
 
-      col.appendChild(wrapper);
-      row.appendChild(col);
+      col.append(wrap);
+      row.append(col);
     });
 
-    body.appendChild(row);
-    collapse.appendChild(body);
-    item.appendChild(header);
-    item.appendChild(collapse);
-    accordion.appendChild(item);
+    body.append(row);
+    collapse.append(body);
+    item.append(collapse);
+    accordion.append(item);
   });
 
-  form.appendChild(accordion);
-} // End of Renderpreview
+  form.append(accordion);
 
+  // 5) Finally hook formulas
+  attachFormulaListeners();
+  evaluateAllFormulas();
+}
 
   // ── SAVE ALL BUTTON ─────────────────────────────────────────────────
   document.getElementById('saveAllBtn').addEventListener('click', () => {
@@ -1390,6 +1241,42 @@ case 'multi-select':
     toggleBtn.classList.toggle('btn-success', hidden);
     toggleBtn.classList.toggle('btn-secondary', !hidden);
   });
+
+// Re‐evaluate all formula fields, but only if the output node exists
+function evaluateAllFormulas() {
+  schemaRows
+    .filter(r => r.dataType === 'formula' && r.widget === 'formula editor')
+    .forEach(r => {
+      const [fldA, op, fldB] = r.options;
+      const a = parseFloat(document.getElementById(`input-${fldA}`)?.value) || 0;
+      const b = parseFloat(document.getElementById(`input-${fldB}`)?.value) || 0;
+      let res = '';
+      switch (op) {
+        case '+': res = a + b; break;
+        case '-': res = a - b; break;
+        case '*': res = a * b; break;
+        case '/': res = b !== 0 ? a / b : '∞'; break;
+      }
+      const out = document.getElementById(`formula-${r.id}`);
+      if (out) out.textContent = res;
+    });
+}
+
+function attachFormulaListeners() {
+  schemaRows
+    .filter(r => !(r.dataType === 'formula' && r.widget === 'formula editor'))
+    .forEach(r => {
+      const node = document.getElementById(`input-${r.id}`);
+      if (!node) return;
+      node.removeEventListener('input',  evaluateAllFormulas);
+      node.removeEventListener('change', evaluateAllFormulas);
+      node.addEventListener('input',  evaluateAllFormulas);
+      node.addEventListener('change', evaluateAllFormulas);
+    });
+}
+
+
+
 </script>
 
 </body>
