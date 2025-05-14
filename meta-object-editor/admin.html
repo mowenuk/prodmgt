@@ -41,7 +41,6 @@
   <label for="datasetSelector">Choose dataset:</label>
   <select id="datasetSelector" class="form-select" style="width: auto; display: inline-block;">
     <option value="default">Default</option>
-    <option value="togaf">TOGAF</option>
   </select>
   <button class="btn btn-primary" id="reloadDatasetBtn">Reload Dataset</button>
 </div>
@@ -435,26 +434,94 @@
   }
 
   // ── autoLoadCSV & dataset loading ────────────────────────────────────
-  function autoLoadCSV(url, callback) {
-    fetch(url)
-      .then(r => { if (!r.ok) throw new Error(`Failed to fetch ${url}`); return r.text(); })
-      .then(txt => Papa.parse(txt, { header: true, skipEmptyLines: true, complete: res => callback(res.data) }))
-      .catch(err => console.error(err));
-  }
-  const GITHUB_RAW_BASE = 'https://raw.githubusercontent.com/mowenuk/prodmgt/main/meta-models/';
-  function getFilename(base, prefix='') {
-    return `${GITHUB_RAW_BASE}${prefix ? prefix + '_' : ''}${base}`;
-  }
-  function loadDataset(prefix='') {
-    autoLoadCSV(getFilename('meta-objects.csv', prefix), loadTypesFromData);
-    autoLoadCSV(getFilename('rels_meta-objects.csv', prefix), loadRelsFromData);
-    autoLoadCSV(getFilename('meta-object-properties.csv', prefix), loadSchemaFromData);
-  }
-  document.getElementById('reloadDatasetBtn').addEventListener('click', () => {
-    const prefix = document.getElementById('datasetSelector').value === 'togaf' ? 'togaf' : '';
-    loadDataset(prefix);
+
+
+// ─────────── Config ────────────
+const GITHUB_RAW_BASE = 
+  'https://raw.githubusercontent.com/mowenuk/prodmgt/main/';
+
+let metaModels = [];
+
+// ────────── CSV Helper ──────────
+function autoLoadCSV(url, callback) {
+  fetch(url)
+    .then(res => {
+      if (!res.ok) throw new Error(`fetch ${url} → ${res.status}`);
+      return res.text();
+    })
+    .then(txt => Papa.parse(txt, {
+      header: true,
+      skipEmptyLines: true,
+      complete: result => callback(result.data)
+    }))
+    .catch(err => console.error('CSV load error:', err));
+}
+
+// ──────── Build File URL ────────
+function getFilename(base, prefix = '') {
+  // prefix *already* includes any underscore, e.g. '' or 'togaf_'
+  return `${GITHUB_RAW_BASE}${prefix}${base}`;
+}
+
+// ─────── Load the 3 CSVs ────────
+function loadDataset(prefix = '') {
+  autoLoadCSV(
+    getFilename('meta-objects.csv', prefix),
+    loadTypesFromData
+  );
+  autoLoadCSV(
+    getFilename('rels_meta-objects.csv', prefix),
+    loadRelsFromData
+  );
+  autoLoadCSV(
+    getFilename('meta-object-properties.csv', prefix),
+    loadSchemaFromData
+  );
+}
+
+// ─── Populate dropdown from meta-models.csv ───
+function loadMetaModelsFromData(data) {
+  metaModels = data.map(r => ({
+    prefix:      r.Prefix      || '',               // '' or 'togaf_'
+    name:        r.name        || r.Name    || '',
+    description: r.description || || ''
+  }));
+
+  const sel = document.getElementById('datasetSelector');
+  sel.innerHTML = '';
+
+  metaModels.forEach(mm => {
+    const label = mm.description
+      ? `${mm.name} – ${mm.description}`
+      : mm.name;
+    sel.appendChild(new Option(label, mm.prefix));
   });
-  window.addEventListener('DOMContentLoaded', () => loadDataset());
+
+  // When you change the dropdown, reload automatically
+  sel.addEventListener('change', () => {
+    loadDataset(sel.value);
+  });
+
+  // Also wire the Reload button
+  document.getElementById('reloadDatasetBtn').onclick = () => {
+    loadDataset(sel.value);
+  };
+
+  // Kick-off: load the first metamodel by default
+  if (metaModels.length) {
+    sel.selectedIndex = 0;
+    loadDataset(metaModels[0].prefix);
+  }
+}
+
+// ─────── Initial entrypoint ───────
+window.addEventListener('DOMContentLoaded', () => {
+  autoLoadCSV(
+    `${GITHUB_RAW_BASE}meta-models.csv`,
+    loadMetaModelsFromData
+  );
+});
+
 
   // ── TYPE CRUD ───────────────────────────────────────────────────────
   function renderTypes() {
