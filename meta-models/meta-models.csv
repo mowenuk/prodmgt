@@ -1,0 +1,3 @@
+﻿id,name,Prefix,Description
+1,Default,,Default metamodel provided by MOWEN
+2,TOGAF,togaf_,TOGAF 9 Metamodel
