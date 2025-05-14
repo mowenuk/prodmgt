@@ -1245,7 +1245,7 @@ function renderPreviewForm() {
 // Re‐evaluate all formula fields, but only if the output node exists
 function evaluateAllFormulas() {
   schemaRows
-    .filter(r => r.dataType === 'formula' && r.widget === 'formula editor')
+    .filter(r => r.widget === 'formula editor')
     .forEach(r => {
       const [fldA, op, fldB] = r.options;
       const a = parseFloat(document.getElementById(`input-${fldA}`)?.value) || 0;
@@ -1261,7 +1261,6 @@ function evaluateAllFormulas() {
       if (out) out.textContent = res;
     });
 }
-
 function attachFormulaListeners() {
   schemaRows
     .filter(r => !(r.dataType === 'formula' && r.widget === 'formula editor'))
@@ -1275,7 +1274,18 @@ function attachFormulaListeners() {
     });
 }
 
-
+function attachFormulaListeners() {
+  schemaRows
+    .filter(r => r.widget !== 'formula editor')
+    .forEach(r => {
+      const node = document.getElementById(`input-${r.id}`);
+      if (!node) return;
+      node.removeEventListener('input',  evaluateAllFormulas);
+      node.removeEventListener('change', evaluateAllFormulas);
+      node.addEventListener('input',  evaluateAllFormulas);
+      node.addEventListener('change', evaluateAllFormulas);
+    });
+}
 
 </script>
 
