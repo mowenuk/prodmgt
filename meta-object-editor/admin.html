@@ -844,25 +844,34 @@ function renderSchema() {
       const optTd = document.createElement('td');
 
       if (r.widget === 'formula editor') {
-        // build list of all numeric/date fields
+        // --- Auto‐init options once ---
+        const numericFields = schemaRows.filter(f =>
+          ['integer','date','percentage'].includes(f.dataType)
+        ).map(f => f.id);
+        if (!r.options || r.options.length !== 3) {
+          r.options = [
+            numericFields[0] || '',   // Field A
+            '+',                      // default operator
+            numericFields[1] || numericFields[0] || ''
+          ];
+        }
+
+        // Now build your three dropdowns...
         const candidates = schemaRows.filter(f =>
           ['integer','date','percentage'].includes(f.dataType)
         );
-
-        // 1) Field A selector
+        // Field A
         const fldA = document.createElement('select');
         fldA.className = 'form-select form-select-sm mb-1';
         candidates.forEach(f => {
-          const o = new Option(f.label || f.name, f.id);
+          const o = new Option(f.label||f.name, f.id);
           if (r.options[0] === f.id) o.selected = true;
           fldA.appendChild(o);
         });
-        fldA.addEventListener('change', () => {
-          r.options[0] = fldA.value;
-        });
+        fldA.onchange = () => r.options[0] = fldA.value;
         optTd.appendChild(fldA);
 
-        // 2) Operator selector
+        // Operator
         const op = document.createElement('select');
         op.className = 'form-select form-select-sm mb-1';
         ['+','-','*','/'].forEach(sym => {
@@ -870,22 +879,18 @@ function renderSchema() {
           if (r.options[1] === sym) o.selected = true;
           op.appendChild(o);
         });
-        op.addEventListener('change', () => {
-          r.options[1] = op.value;
-        });
+        op.onchange = () => r.options[1] = op.value;
         optTd.appendChild(op);
 
-        // 3) Field B selector
+        // Field B
         const fldB = document.createElement('select');
         fldB.className = 'form-select form-select-sm';
         candidates.forEach(f => {
-          const o = new Option(f.label || f.name, f.id);
+          const o = new Option(f.label||f.name, f.id);
           if (r.options[2] === f.id) o.selected = true;
           fldB.appendChild(o);
         });
-        fldB.addEventListener('change', () => {
-          r.options[2] = fldB.value;
-        });
+        fldB.onchange = () => r.options[2] = fldB.value;
         optTd.appendChild(fldB);
       } else if (userOptionWidgets.includes(r.widget)) {
         // text input for comma-separated options
@@ -1116,7 +1121,15 @@ function renderPreviewForm() {
         lbl.className = 'form-label';
         lbl.textContent = r.label || r.name;
         wrap.appendChild(lbl);
-
+       // 2) Help‐text suffix showing the formula definition
+        const [fldA, op, fldB] = r.options;
+        // look up the human names for each field
+        const nameA = schemaRows.find(f => f.id === fldA)?.label || fldA;
+        const nameB = schemaRows.find(f => f.id === fldB)?.label || fldB;
+        const help = document.createElement('small');
+        help.className = 'form-text text-muted';
+        help.textContent = `(${nameA} ${op} ${nameB})`;
+        wrap.appendChild(help);
         // output
         const out = document.createElement('div');
         out.id = `formula-${r.id}`;
