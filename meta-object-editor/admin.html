@@ -460,7 +460,7 @@ function autoLoadCSV(url, callback) {
 // ──────── Build File URL ────────
 function getFilename(base, prefix = '') {
   // prefix *already* includes any underscore, e.g. '' or 'togaf_'
-  return `${GITHUB_RAW_BASE}${prefix}${base}`;
+  return `${GITHUB_RAW_BASE}meta-models/${prefix}${base}`;
 }
 
 // ─────── Load the 3 CSVs ────────
@@ -484,7 +484,7 @@ function loadMetaModelsFromData(data) {
   metaModels = data.map(r => ({
     prefix:      r.Prefix      || '',               // '' or 'togaf_'
     name:        r.name        || r.Name    || '',
-    description: r.description || || ''
+    description: r.description || ''
   }));
 
   const sel = document.getElementById('datasetSelector');
@@ -517,7 +517,7 @@ function loadMetaModelsFromData(data) {
 // ─────── Initial entrypoint ───────
 window.addEventListener('DOMContentLoaded', () => {
   autoLoadCSV(
-    `${GITHUB_RAW_BASE}meta-models.csv`,
+    `${GITHUB_RAW_BASE}meta-models/meta-models.csv`,
     loadMetaModelsFromData
   );
 });
