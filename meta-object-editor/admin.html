@@ -848,54 +848,151 @@ function renderSchema() {
       const optTd = document.createElement('td');
 
       if (r.widget === 'formula editor') {
-        // --- Auto‐init options once ---
-        const numericFields = schemaRows.filter(f =>
-          ['integer','date','percentage'].includes(f.dataType)
-        ).map(f => f.id);
-        if (!r.options || r.options.length !== 3) {
-          r.options = [
-            numericFields[0] || '',   // Field A
-            '+',                      // default operator
-            numericFields[1] || numericFields[0] || ''
-          ];
-        }
+   // ensure we have an array
+  r.options = r.options || [];
 
-        // Now build your three dropdowns...
-        const candidates = schemaRows.filter(f =>
-          ['integer','date','percentage'].includes(f.dataType)
+  // auto-init to two fields + "+" if empty
+  if (r.options.length < 1) {
+    const numFields = schemaRows
+      .filter(f => ['integer','date','percentage'].includes(f.dataType))
+      .map(f => f.id);
+    r.options = [
+      numFields[0] || '',
+      '+',
+      numFields[1] || numFields[0] || ''
+    ];
+  }
+
+  // container for tokens
+  const builder = document.createElement('div');
+  builder.className = 'd-flex flex-wrap gap-2';
+
+  // render function
+ // inside your renderSchema() formula‐editor branch:
+
+// … after `const builder = document.createElement('div');` …
+function renderTokens() {
+  builder.innerHTML = '';
+
+  // 1) Prep: available fields & operators
+  const fieldOptions = schemaRows.filter(f =>
+    ['integer','date','percentage'].includes(f.dataType)
+  );
+  const opOptions = ['+','-','*','/'];
+
+  // 2) Helpers to build selects
+  function createFieldSelect(idx) {
+    const sel = document.createElement('select');
+    sel.className = 'form-select form-select-sm';
+    sel.id = `input-${r.id}-${idx}`;
+    fieldOptions.forEach(f => {
+      const opt = new Option(f.label || f.name, f.id);
+      if (r.options[idx] === f.id) opt.selected = true;
+      sel.append(opt);
+    });
+    sel.onchange = e => { r.options[idx] = e.target.value; };
+    return sel;
+  }
+
+  function createOpSelect(idx) {
+    const sel = document.createElement('select');
+    sel.className = 'form-select form-select-sm';
+    sel.id = `input-${r.id}-${idx}`;
+    opOptions.forEach(sym => {
+      const opt = new Option(sym, sym);
+      if (r.options[idx] === sym) opt.selected = true;
+      sel.append(opt);
+    });
+    sel.onchange = e => { r.options[idx] = e.target.value; };
+    return sel;
+  }
+
+  // 3) How many extra [op,field] pairs beyond the first row?
+  const extraPairs = Math.max(0, Math.floor((r.options.length - 3) / 2));
+
+  // ─── Row 1: Attribute | Operator | Attribute ─────────────
+  {
+    const row = document.createElement('div');
+    row.className = 'd-flex gap-2 mb-2';
+    [0,1,2].forEach(idx => {
+      const cell = document.createElement('div');
+      cell.className = 'flex-fill';
+      if (idx < r.options.length) {
+        cell.appendChild(
+          idx % 2 === 0
+            ? createFieldSelect(idx)
+            : createOpSelect(idx)
         );
-        // Field A
-        const fldA = document.createElement('select');
-        fldA.className = 'form-select form-select-sm mb-1';
-        candidates.forEach(f => {
-          const o = new Option(f.label||f.name, f.id);
-          if (r.options[0] === f.id) o.selected = true;
-          fldA.appendChild(o);
-        });
-        fldA.onchange = () => r.options[0] = fldA.value;
-        optTd.appendChild(fldA);
+      }
+      row.appendChild(cell);
+    });
+    builder.appendChild(row);
+  }
 
-        // Operator
-        const op = document.createElement('select');
-        op.className = 'form-select form-select-sm mb-1';
-        ['+','-','*','/'].forEach(sym => {
-          const o = new Option(sym, sym);
-          if (r.options[1] === sym) o.selected = true;
-          op.appendChild(o);
-        });
-        op.onchange = () => r.options[1] = op.value;
-        optTd.appendChild(op);
+  // ─── Rows 2…N: each extra [Operator | Attribute] ─────────
+  for (let p = 0; p < extraPairs; p++) {
+    const base = 3 + p*2;  // operator at base, field at base+1
+    const row = document.createElement('div');
+    row.className = 'd-flex gap-2 mb-2';
 
-        // Field B
-        const fldB = document.createElement('select');
-        fldB.className = 'form-select form-select-sm';
-        candidates.forEach(f => {
-          const o = new Option(f.label||f.name, f.id);
-          if (r.options[2] === f.id) o.selected = true;
-          fldB.appendChild(o);
-        });
-        fldB.onchange = () => r.options[2] = fldB.value;
-        optTd.appendChild(fldB);
+    // Operator cell
+    const opCell = document.createElement('div');
+    opCell.className = 'flex-fill';
+    if (r.options[base] !== undefined) {
+      opCell.appendChild(createOpSelect(base));
+    }
+    row.appendChild(opCell);
+
+    // Field cell
+    const fldCell = document.createElement('div');
+    fldCell.className = 'flex-fill';
+    if (r.options[base+1] !== undefined) {
+      fldCell.appendChild(createFieldSelect(base+1));
+    }
+    row.appendChild(fldCell);
+
+    // Placeholder cell (for uniform 3-column layout)
+    const placeholder = document.createElement('div');
+    placeholder.className = 'flex-fill';
+    row.appendChild(placeholder);
+
+    builder.appendChild(row);
+  }
+
+  // ─── Final “＋ Add Step” row ──────────────────────────────
+  {
+    const row = document.createElement('div');
+    row.className = 'd-flex gap-2 mb-2';
+    // two empty cells
+    row.appendChild(document.createElement('div'));
+    row.appendChild(document.createElement('div'));
+
+    // action cell
+    const actionCell = document.createElement('div');
+    actionCell.className = 'flex-fill text-end';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'btn btn-sm btn-outline-primary';
+    btn.textContent = '＋ Add Step';
+    btn.onclick = () => {
+      // append default [+, firstNumericField]
+      r.options.push('+');
+      const nf = fieldOptions[0];
+      if (nf) r.options.push(nf.id);
+      renderTokens();
+    };
+    actionCell.appendChild(btn);
+    row.appendChild(actionCell);
+
+    builder.appendChild(row);
+  }
+}
+
+// …after defining renderTokens(), immediately call it:
+renderTokens();
+optTd.appendChild(builder);
+
+
       } else if (userOptionWidgets.includes(r.widget)) {
         // text input for comma-separated options
         const optIn = document.createElement('input');
@@ -1120,21 +1217,29 @@ function renderPreviewForm() {
 
       // ───────────── Formula editor branch ─────────────────────
       if (r.widget === 'formula editor') {
-        // label
+        // 1) Render the label
         const lbl = document.createElement('label');
         lbl.className = 'form-label';
         lbl.textContent = r.label || r.name;
         wrap.appendChild(lbl);
-       // 2) Help‐text suffix showing the formula definition
-        const [fldA, op, fldB] = r.options;
-        // look up the human names for each field
-        const nameA = schemaRows.find(f => f.id === fldA)?.label || fldA;
-        const nameB = schemaRows.find(f => f.id === fldB)?.label || fldB;
-        const help = document.createElement('small');
+
+        // 2) Build & render the help text summary
+        const ops = r.options.map(tok => {
+          // if it's one of our operators, just show it
+          if (['+','-','*','/'].includes(tok)) return tok;
+          // otherwise find the human‐friendly field label
+          const fld = schemaRows.find(f => f.id === tok);
+          return fld
+            ? (fld.label || fld.name)
+            : tok;   // fallback to the raw token
+        }).join(' ');
+
+        const help = document.createElement('div');
         help.className = 'form-text text-muted';
-        help.textContent = `(${nameA} ${op} ${nameB})`;
+        help.textContent = `Formula: ${ops}`;
         wrap.appendChild(help);
-        // output
+
+        // 3) Render the live result container
         const out = document.createElement('div');
         out.id = `formula-${r.id}`;
         out.className = 'form-control-plaintext';
@@ -1142,9 +1247,9 @@ function renderPreviewForm() {
 
         col.appendChild(wrap);
         row.appendChild(col);
-        // skip the rest
         return;
       }
+
 
       // ─── Non-formula: generic label (unless checkbox) ───────────
       if (r.widget !== 'checkbox') {
@@ -1284,25 +1389,88 @@ function renderPreviewForm() {
     toggleBtn.classList.toggle('btn-secondary', !hidden);
   });
 
-// Re‐evaluate all formula fields, but only if the output node exists
+
+// Returns the numeric value of a token (field-ID or literal)
+function resolveToken(tok) {
+  if (/^[\d.]+$/.test(tok)) {
+    return parseFloat(tok);
+  } else {
+    // assume it's a field ID
+    const inp = document.getElementById(`input-${tok}`);
+    return parseFloat(inp?.value) || 0;
+  }
+}
+
+// Operator metadata: precedence and associativity
+const OP_INFO = {
+  '^': { prec: 4, assoc: 'right', fn: (a,b) => Math.pow(a,b) },
+  '*': { prec: 3, assoc: 'left',  fn: (a,b) => a * b },
+  '/': { prec: 3, assoc: 'left',  fn: (a,b) => b !== 0 ? a / b : Infinity },
+  '%': { prec: 3, assoc: 'left',  fn: (a,b) => a % b },
+  '+': { prec: 2, assoc: 'left',  fn: (a,b) => a + b },
+  '-': { prec: 2, assoc: 'left',  fn: (a,b) => a - b }
+};
+
 function evaluateAllFormulas() {
   schemaRows
     .filter(r => r.widget === 'formula editor')
     .forEach(r => {
-      const [fldA, op, fldB] = r.options;
-      const a = parseFloat(document.getElementById(`input-${fldA}`)?.value) || 0;
-      const b = parseFloat(document.getElementById(`input-${fldB}`)?.value) || 0;
-      let res = '';
-      switch (op) {
-        case '+': res = a + b; break;
-        case '-': res = a - b; break;
-        case '*': res = a * b; break;
-        case '/': res = b !== 0 ? a / b : '∞'; break;
-      }
+      const toks = [...r.options]; // token array: field IDs, literals, ops, parentheses
+      const outputQueue = [];
+      const opStack     = [];
+
+      // Shunting-yard to RPN
+      toks.forEach(tok => {
+        if (/^[\d.]+$/.test(tok) || schemaRows.some(f=>f.id===tok)) {
+          // number literal or field
+          outputQueue.push(tok);
+        }
+        else if (OP_INFO[tok]) {
+          const { prec, assoc } = OP_INFO[tok];
+          while (opStack.length) {
+            const top = opStack[opStack.length-1];
+            if (OP_INFO[top] &&
+                ((assoc==='left'  && prec <= OP_INFO[top].prec) ||
+                 (assoc==='right' && prec <  OP_INFO[top].prec))) {
+              outputQueue.push(opStack.pop());
+            } else break;
+          }
+          opStack.push(tok);
+        }
+        else if (tok === '(') {
+          opStack.push(tok);
+        }
+        else if (tok === ')') {
+          while (opStack.length && opStack[opStack.length-1] !== '(') {
+            outputQueue.push(opStack.pop());
+          }
+          opStack.pop(); // remove "("
+        }
+      });
+      // drain ops
+      while (opStack.length) outputQueue.push(opStack.pop());
+
+      // Evaluate RPN
+      const evalStack = [];
+      outputQueue.forEach(tok => {
+        if (OP_INFO[tok]) {
+          const b = evalStack.pop();
+          const a = evalStack.pop();
+          evalStack.push(OP_INFO[tok].fn(a,b));
+        } else {
+          evalStack.push(resolveToken(tok));
+        }
+      });
+      const result = evalStack[0] ?? '';
+
+      // Render
       const out = document.getElementById(`formula-${r.id}`);
-      if (out) out.textContent = res;
+      if (out) out.textContent = result;
     });
 }
+
+
+
 function attachFormulaListeners() {
   schemaRows
     .filter(r => !(r.dataType === 'formula' && r.widget === 'formula editor'))
