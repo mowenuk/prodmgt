@@ -1106,7 +1106,7 @@ function renderPreviewForm() {
         : 'mb-3';
 
       // 4) Formula Editor
-      if (r.dataType==='formula' && r.widget==='formula editor') {
+      if (r.widget==='formula editor') {
         const out = document.createElement('div');
         out.id = `formula-${r.id}`;
         out.className = 'form-control-plaintext';
