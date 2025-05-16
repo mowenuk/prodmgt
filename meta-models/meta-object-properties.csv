@@ -10,3 +10,5 @@ id,name,label,type_IDs,dataType,widget,options,group,layout,system
 9,progress,Progress,"1,2,3",percentage,progress bar,,,full-width,TRUE
 10,volume,Volume,5,short text,text input,,,quarter,FALSE
 11,department,Department,"3,11",short text,single select,"Sales,Product Management,HR,Finance,Pre-Sales,Engineering,Marketing",,full-width,FALSE
+12,criticality,Criticality,"1,2,3",integer,single choice color,"High:Green:100,Medium:Red:50,Low:Blue:10",,quarter,FALSE
+13,importance,Importance,"1,2,3",formula,formula editor,"7,*,12",,quarter,FALSE
