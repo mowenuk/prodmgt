@@ -402,7 +402,6 @@
   <th>Types</th>
   <th>Data Type</th>
   <th>Widget</th>
-    <th>Help</th>
   <th>Options</th>
   <th>Group</th>
   <th>Layout</th>
@@ -489,6 +488,25 @@ widgetHelpText['single choice color'] =
     'full-width','half-left','half-right','one-third','two-thirds',
     'quarter','three-quarters','inline','auto','hidden'
   ];
+
+  // ─── Example option strings for each widget ───
+const widgetOptionExamples = {
+  'text input':            'Before:@, Username',
+  'spinner':               'Before:£, Amount GBP',
+  'range slider':          '0,100,10',
+  'stepper':               '0,10,1',
+  'radio group':           'High,Medium,Low',
+  'toggle buttons':        'On,Off',
+  'select':                'Red,Green,Blue',
+  'single select':         'Small,Medium,Large',
+  'multi-select':          'Apple,Banana,Cherry',
+  'editable progress bar': '50,100',
+  'dial gauge':            '0,360',
+  'progress bar':          '40: Free Space: success, 10: Warning: warning',
+  'single choice':         'High:1, Medium:2, Low:3',
+  'single choice color':   'Green:20, Blue:40, Yellow:60, Red:80'
+};
+
 
   // ── CSV SAVE HELPER ─────────────────────────────────────────────────
   function saveCSV(data, filename, columns) {
@@ -906,20 +924,6 @@ function renderSchema() {
       tr.appendChild(td);
     })();
 
-    // ───── Help ────────────────────────────────────
-    (() => {
-      const td = document.createElement('td');
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'btn btn-outline-secondary btn-sm';
-      btn.textContent = '?';
-      btn.disabled = isSystem;                // ← disable if system
-      btn.addEventListener('click', () => {
-        alert(`${r.widget}:\n\n${widgetHelpText[r.widget] || 'No help.'}`);
-      });
-      td.appendChild(btn);
-      tr.appendChild(td);
-    })();
 
     // ───── Options ─────────────────────────────────
     (() => {
@@ -1073,25 +1077,24 @@ optTd.appendChild(builder);
 
       } else if (userOptionWidgets.includes(r.widget)) {
         // text input for comma-separated options
-        const optIn = document.createElement('input');
-        optIn.type        = 'text';
-        optIn.className   = 'form-control form-control-sm';
-        optIn.value       = (r.options || []).join(',');
-        optIn.placeholder = widgetHelpText[r.widget] || '';
-        optIn.disabled = isSystem;                 // ← disable if system
-        optIn.addEventListener('change', e => {
-          r.options = e.target.value
-                        .split(',')
-                        .map(s => s.trim())
-                        .filter(s => s);
-        });
-        optTd.appendChild(optIn);
+      const optIn = document.createElement('input');
+      optIn.type        = 'text';
+      optIn.value       = r.options.join(',');
+      optIn.placeholder = widgetOptionExamples[r.widget] || '';
+      optIn.className   = 'form-control form-control-sm';
+      optIn.onchange    = e => {
+        r.options = e.target.value
+                      .split(',')
+                      .map(s => s.trim())
+                      .filter(s => s);
+      };
+      optTd.appendChild(optIn);
 
-        // inline help text
-        const hint = document.createElement('div');
-        hint.className   = 'form-text text-muted small';
-        hint.textContent = widgetHelpText[r.widget] || '';
-        optTd.appendChild(hint);
+      // small help text stays the same
+      const hint = document.createElement('div');
+      hint.className = 'form-text text-muted small';
+      hint.textContent = widgetHelpText[r.widget] || '';
+      optTd.appendChild(hint);
       } else {
         // no options for this widget
         optTd.textContent = '—';
