@@ -1443,6 +1443,33 @@ function renderPreviewForm() {
           },0);
           break;
         }
+        case 'rich text': {
+          // 1) Insert the label (your generic-label logic will already have done this if you placed it above the switch)
+          // 2) Create a container for Quill
+          const editorDiv = document.createElement('div');
+          editorDiv.id        = `preview-rich-${r.id}`;
+          editorDiv.className = 'form-control';
+          editorDiv.style.minHeight = '120px';
+          wrap.appendChild(editorDiv);
+
+          // 3) Initialize Quill in read-only or editable mode
+          setTimeout(() => {
+            const q = new Quill(editorDiv, {
+              theme:    'snow',
+              readOnly: false,        // or true if you want preview-only
+              placeholder: r.options[0] || ''
+            });
+            // load the plain-text default you saved
+            if (r.options[0]) q.setText(r.options[0]);
+            // keep track if you need it later
+            quillEditors[`preview-${r.id}`] = q;
+          }, 0);
+
+          // We're done with this field
+          col.appendChild(wrap);
+          row.appendChild(col);
+          return;
+        }
 
         default:
           input = document.createElement('input');
