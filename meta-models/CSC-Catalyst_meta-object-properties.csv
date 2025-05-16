@@ -1,0 +1,14 @@
+id,name,label,type_IDs,dataType,widget,options,group,layout,system
+1,id,ID,"1,2,3,4,5,6,7,8,9,10",short text,text input,,System,one-third,True
+2,object_type,Object Type,"1,2,3,4,5,6,7,8,9,10",short text,select,,System,two-thirds,True
+3,text,Text,"1,2,3,4,5,6,7,8,9,10",long text,textarea,,,half-left,True
+4,owner,Owner,"1,2,3,4,5,6,7,8,9,10",short text,text input,,System,half-right,True
+5,comment,Comment,"1,2,3,4,5,6,7,8,9,10",long text,textarea,,,full-width,False
+6,priority,Priority,"1,2,3,4,9",short text,single select,"High,Medium,Low",,quarter,False
+7,duration,Duration,"1,2,3,4,",integer,spinner,,,quarter,False
+8,start_date,Start Date,"1,2,3",date,date picker,,,quarter,False
+9,progress,Progress,"1,2,3",percentage,progress bar,,,full-width,True
+10,volume,Volume,5,short text,text input,,,quarter,False
+11,department,Department,"3,11",short text,single select,"Sales,Product Management,HR,Finance,Pre-Sales,Engineering,Marketing",,full-width,False
+12,criticality,Criticality,"1,2,3",integer,single choice color,"High:Green:100,Medium:Red:50,Low:Blue:10",,quarter,False
+13,importance,Importance,"1,2,3",formula,formula editor,"7,*,12",,quarter,False
