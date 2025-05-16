@@ -1,3 +1,5 @@
 ﻿id,name,Prefix,Description
 1,Default,,Default metamodel provided by MOWEN
 2,TOGAF,togaf_,TOGAF 9 Metamodel
+3,OKR,OKR_,Objectives and Key Results Framework
+4,ArchiMate,ArchiMate_,ArchiMate Framework
