@@ -1,0 +1,8 @@
+id,name,label,type_IDs,dataType,widget,options,system
+1,id,ID,"201,202,203,204,205,206,207,208,209,210",short text,text input,,True
+2,name,Name,"201,202,203,204,205,206,207,208,209,210",short text,text input,,True
+3,owner,Owner,"201,204,206",short text,text input,,False
+4,status,Status,"201,203,204,206",short text,select,"Planned,Active,Retired",False
+5,lifecycle_stage,Lifecycle Stage,"204,206,209",short text,select,"Development,Test,Production",False
+6,confidentiality,Confidentiality,205,short text,select,"Public,Internal,Confidential,Restricted",False
+7,capex_opex,CapEx / OpEx,"203,206",short text,select,"CapEx,OpEx",False

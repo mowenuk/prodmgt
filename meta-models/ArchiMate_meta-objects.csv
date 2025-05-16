@@ -1,0 +1,11 @@
+id,name,description,domain
+201,Business Process,A set of related tasks that achieve a business goal,Business Layer
+202,Requirement,A specification of what should be implemented,Business Layer
+203,Project,An endeavor to deliver a solution,Business Layer
+204,Application Component,Software that supports business processes,Application Layer
+205,Data Entity,A logical data object,Technology Layer
+206,Technology Component,Technology used to support applications,Technology
+207,Location,Physical or virtual location,Technology
+208,Actor,A user or system that interacts with processes,Business Layer
+209,Service,A unit of functionality exposed by components,Application Layer
+210,Capability,A business ability delivered by processes and services,Business Layer
