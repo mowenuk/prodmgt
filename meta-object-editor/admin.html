@@ -1639,6 +1639,9 @@ case 'single choice color': {
       // update button
       btn.textContent = label;
       btn.className   = `btn btn-sm btn-${bsClr} dropdown-toggle`;
+            // 3) hide the dropdown programmatically
+      const dd = bootstrap.Dropdown.getOrCreateInstance(btn);
+      dd.hide();
       // re-run formulas
       evaluateAllFormulas();
     });
