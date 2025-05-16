@@ -388,7 +388,7 @@
   const widgetsByDataType = {
     'short text':   ['text input','select','single select','multi-select'],
     'long text':    ['textarea','rich text'],
-    'integer':      ['text input','spinner','stepper','range slider'],
+    'integer':      ['text input','spinner','stepper','range slider','single choice','single choice color'],
     'date':         ['date picker','time picker','month picker','week picker'],
     'percentage':   ['progress bar','editable progress bar','dial gauge'],
     'boolean':      ['checkbox','radio group','toggle buttons'],
@@ -408,12 +408,21 @@
     'editable progress bar': 'Enter initialValue,max (e.g. 50,100).',
     'dial gauge':   'Enter min,max (e.g. 0,360).',
     'rich text':    'Quill editor; plain text is saved in CSV.',
+
   };
+  widgetHelpText['single choice'] = 
+  'Enter your choices as Label:Value pairs, separated by commas. E.g. High:1, Medium:2, Low:3.';
+
+widgetHelpText['single choice color'] = 
+  'Enter your choices as ColorName:Value pairs, separated by commas. ' +
+  'ColorName must be a valid Bootstrap color (e.g. Green, Danger, Warning). ' +
+  'E.g. Green:20, Red:80, Yellow:50.';
+  
   const userOptionWidgets = [
     'text input','spinner','range slider','stepper',
     'radio group','toggle buttons','select','single select',
     'multi-select','editable progress bar','dial gauge',
-    'progress bar'
+    'progress bar','single choice','single choice color'
   ];
   const layoutOptions = [
     'full-width','half-left','half-right','one-third','two-thirds',
@@ -1470,6 +1479,103 @@ function renderPreviewForm() {
           row.appendChild(col);
           return;
         }
+        // ─── Single Choice (no colour) ─────────────────────────
+        case 'single choice': {
+          // hidden input that formulas will read
+          const hidden = document.createElement('input');
+          hidden.type = 'hidden';
+          hidden.id   = `input-${r.id}`;
+          wrap.appendChild(hidden);
+
+          // build the <select>
+          const sel = document.createElement('select');
+          sel.className = 'form-select';
+          sel.onchange = e => {
+            hidden.value = e.target.value;
+            evaluateAllFormulas();
+          };
+          // options: each r.options entry is just a value string
+          r.options.forEach(opt => {
+            const [label,val] = opt.includes(':')
+              ? opt.split(':').map(s=>s.trim())
+              : [opt,opt];
+            const o = new Option(label, val);
+            sel.appendChild(o);
+          });
+          // init hidden to first
+          if (sel.options.length) {
+            sel.selectedIndex = 0;
+            hidden.value      = sel.value;
+          }
+          wrap.appendChild(sel);
+
+          col.appendChild(wrap);
+          row.appendChild(col);
+          return;
+        }
+
+      // ─── Single Choice Color ────────────────────────────────
+      case 'single choice color': {
+        // 1) Hidden input for formulas
+        const hidden = document.createElement('input');
+        hidden.type = 'hidden';
+        hidden.id   = `input-${r.id}`;
+        wrap.appendChild(hidden);
+
+        // 2) Dropdown container
+        const dd = document.createElement('div');
+        dd.className = 'dropdown';
+
+        // 3) Toggle button
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-sm btn-outline-secondary dropdown-toggle';
+        btn.type = 'button';
+        btn.setAttribute('data-bs-toggle', 'dropdown');
+        // initialize with first numeric value
+        const [firstClr, firstVal] = r.options[0].split(':').map(s=>s.trim());
+        btn.textContent = firstVal;
+        // set hidden initial value
+        hidden.value = firstVal;
+        // optional: color the button background
+        const bsFirst = BS_COLOR_MAP[firstClr.toLowerCase()] || 'secondary';
+        btn.classList.replace('btn-outline-secondary', `btn-${bsFirst}`);
+        dd.appendChild(btn);
+
+        // 4) Menu items
+        const menu = document.createElement('ul');
+        menu.className = 'dropdown-menu';
+        r.options.forEach(opt => {
+          const [clrName, val] = opt.split(':').map(s=>s.trim());
+          const bsClr = BS_COLOR_MAP[clrName.toLowerCase()] || 'secondary';
+
+          const li = document.createElement('li');
+          const a  = document.createElement('a');
+          a.className = 'dropdown-item';
+          a.href = '#';
+          // style the background and text
+          a.style.backgroundColor = getComputedStyle(document.documentElement)
+                                    .getPropertyValue(`--bs-${bsClr}`) || bsClr;
+          a.style.color = '#fff';
+          a.textContent = val;
+          a.addEventListener('click', e => {
+            e.preventDefault();
+            // update hidden and button
+            hidden.value = val;
+            btn.textContent = val;
+            btn.className = `btn btn-sm btn-${bsClr} dropdown-toggle`;
+            // re‐evaluate formulas
+            evaluateAllFormulas();
+          });
+          li.appendChild(a);
+          menu.appendChild(li);
+        });
+        dd.appendChild(menu);
+
+        wrap.appendChild(dd);
+        col.appendChild(wrap);
+        row.appendChild(col);
+        return;
+      }
 
         default:
           input = document.createElement('input');
