@@ -1135,13 +1135,13 @@ function renderPreviewForm() {
   const form   = document.getElementById('previewForm');
   form.innerHTML = '';
 
-  // ─── 1) Header: meta-type name + ID ─────────────────────────────
+  // 1) Header: meta-type name + ID
   const mt = metaTypes.find(m => m.id === typeId) || {};
   const headerDiv = document.createElement('div');
   headerDiv.className = 'mb-4';
   const titleEl = document.createElement('h4');
   titleEl.className = 'd-flex align-items-baseline';
-  titleEl.appendChild(document.createTextNode(mt.name || ''));
+  titleEl.textContent = mt.name || '';
   const idEl = document.createElement('small');
   idEl.className = 'text-secondary ms-2';
   idEl.textContent = `ID: ${mt.id || ''}`;
@@ -1149,7 +1149,7 @@ function renderPreviewForm() {
   headerDiv.appendChild(titleEl);
   form.appendChild(headerDiv);
 
-  // ─── 2) Grouping (skip id & object_type) ────────────────────────
+  // 2) Group & filter fields
   const grouped = {};
   schemaRows.forEach(r => {
     if (r.name === 'id' || r.name === 'object_type') return;
@@ -1158,88 +1158,78 @@ function renderPreviewForm() {
     (grouped[grp] = grouped[grp] || []).push(r);
   });
 
-  // ─── 3) Build the accordion ─────────────────────────────────────
+  // 3) Build accordion
   const accordion = document.createElement('div');
   accordion.className = 'accordion';
-  accordion.id        = 'previewAccordion';
+  accordion.id = 'previewAccordion';
 
   Object.entries(grouped).forEach(([groupName, fields], gIdx) => {
-    const groupId  = `group${gIdx}`;
-    const onlyOne  = fields.length === 1;
+    const groupId = `group${gIdx}`;
+    const onlyOne = fields.length === 1;
 
-    // 3a) Accordion item + header
+    // a) Accordion header
     const item = document.createElement('div');
     item.className = 'accordion-item';
-
     const hdr = document.createElement('h2');
     hdr.className = 'accordion-header';
     const btn = document.createElement('button');
-    btn.className = `accordion-button${gIdx > 0 ? ' collapsed' : ''}`;
+    btn.className = `accordion-button${gIdx>0?' collapsed':''}`;
     btn.type = 'button';
-    btn.setAttribute('data-bs-toggle', 'collapse');
+    btn.setAttribute('data-bs-toggle','collapse');
     btn.setAttribute('data-bs-target', `#collapse-${groupId}`);
     btn.textContent = groupName;
     hdr.appendChild(btn);
     item.appendChild(hdr);
 
-    // 3b) Collapsible body
+    // b) Collapsible body
     const collapse = document.createElement('div');
     collapse.id = `collapse-${groupId}`;
-    collapse.className = `accordion-collapse collapse${gIdx === 0 ? ' show' : ''}`;
-    collapse.setAttribute('data-bs-parent', '#previewAccordion');
-
+    collapse.className = `accordion-collapse collapse${gIdx===0?' show':''}`;
+    collapse.setAttribute('data-bs-parent','#previewAccordion');
     const body = document.createElement('div');
     body.className = 'accordion-body';
     const row  = document.createElement('div');
     row.className = 'row g-3';
 
-    // 3c) Fields loop
+    // c) Field rendering
     fields.forEach(r => {
       const col = document.createElement('div');
       // layout
       const layoutKey = onlyOne ? 'full-width' : r.layout;
       switch (layoutKey) {
-        case 'half-left':
-        case 'half-right':        col.className = 'col-md-6'; break;
-        case 'one-third':         col.className = 'col-md-4'; break;
-        case 'two-thirds':        col.className = 'col-md-8'; break;
-        case 'quarter':           col.className = 'col-md-3'; break;
-        case 'three-quarters':    col.className = 'col-md-9'; break;
-        case 'inline':
-        case 'auto':              col.className = 'col-auto'; break;
-        default:                  col.className = 'col-12';
+        case 'half-left': case 'half-right': col.className='col-md-6'; break;
+        case 'one-third':     col.className='col-md-4'; break;
+        case 'two-thirds':    col.className='col-md-8'; break;
+        case 'quarter':       col.className='col-md-3'; break;
+        case 'three-quarters':col.className='col-md-9'; break;
+        case 'inline': case 'auto': col.className='col-auto'; break;
+        default:              col.className='col-12';
       }
 
       const wrap = document.createElement('div');
-      wrap.className = (r.widget === 'checkbox')
+      wrap.className = r.widget === 'checkbox'
         ? 'form-check form-switch mt-2'
         : 'mb-3';
 
-      // ───────────── Formula editor branch ─────────────────────
+      // ── Formula editor ─────────────────────────────
       if (r.widget === 'formula editor') {
-        // 1) Render the label
+        // label
         const lbl = document.createElement('label');
         lbl.className = 'form-label';
         lbl.textContent = r.label || r.name;
         wrap.appendChild(lbl);
 
-        // 2) Build & render the help text summary
-        const ops = r.options.map(tok => {
-          // if it's one of our operators, just show it
-          if (['+','-','*','/'].includes(tok)) return tok;
-          // otherwise find the human‐friendly field label
-          const fld = schemaRows.find(f => f.id === tok);
-          return fld
-            ? (fld.label || fld.name)
-            : tok;   // fallback to the raw token
-        }).join(' ');
-
+        // help text summary
         const help = document.createElement('div');
         help.className = 'form-text text-muted';
-        help.textContent = `Formula: ${ops}`;
+        help.textContent = 'Formula: ' + r.options.map(tok => {
+          if (['+','-','*','/'].includes(tok)) return tok;
+          const fld = schemaRows.find(f => f.id === tok);
+          return fld ? (fld.label || fld.name) : tok;
+        }).join(' ');
         wrap.appendChild(help);
 
-        // 3) Render the live result container
+        // live result
         const out = document.createElement('div');
         out.id = `formula-${r.id}`;
         out.className = 'form-control-plaintext';
@@ -1250,8 +1240,7 @@ function renderPreviewForm() {
         return;
       }
 
-
-      // ─── Non-formula: generic label (unless checkbox) ───────────
+      // ── Default label (except checkbox) ──────────────
       if (r.widget !== 'checkbox') {
         const lbl = document.createElement('label');
         lbl.className = 'form-label';
@@ -1259,72 +1248,212 @@ function renderPreviewForm() {
         wrap.appendChild(lbl);
       }
 
-      // ─── Build the correct input/control ────────────────────────
-      let inputEl;
+      // ── Widget cases ─────────────────────────────────
+      let input;
       switch (r.widget) {
         case 'text input':
-          inputEl = document.createElement('input');
-          inputEl.type = 'text';
-          inputEl.className = 'form-control';
-          if (r.options[0]) inputEl.value = r.options[0];
+          input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'form-control';
+          if (r.options[0]) input.value = r.options[0];
+          break;
+
+        case 'search input':
+        case 'email input':
+        case 'url input':
+        case 'tel input':
+          input = document.createElement('input');
+          input.type = r.widget.split(' ')[0];
+          input.className = 'form-control';
+          break;
+
+        case 'floating label':
+          input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'form-control';
+          break;
+
+        case 'textarea':
+          input = document.createElement('textarea');
+          input.className = 'form-control';
+          if (r.options[0]) input.value = r.options[0];
           break;
 
         case 'spinner':
-          inputEl = document.createElement('input');
-          inputEl.type = 'number';
-          inputEl.className = 'form-control';
-          if (r.options[0]) inputEl.value = r.options[0];
+          input = document.createElement('input');
+          input.type = 'number';
+          input.className = 'form-control';
+          if (r.options[0]) input.value = r.options[0];
+          break;
+
+        case 'stepper': {
+          const grp = document.createElement('div');
+          grp.className = 'input-group';
+          const dec = document.createElement('button');
+          dec.type='button'; dec.className='btn btn-outline-secondary'; dec.textContent='−';
+          const num = document.createElement('input');
+          num.type='number'; num.className='form-control';
+          const inc = document.createElement('button');
+          inc.type='button'; inc.className='btn btn-outline-secondary'; inc.textContent='+';
+          dec.onclick = () => num.value = (parseFloat(num.value)||0) - 1;
+          inc.onclick = () => num.value = (parseFloat(num.value)||0) + 1;
+          grp.append(dec, num, inc);
+          wrap.appendChild(grp);
+          col.appendChild(wrap);
+          row.appendChild(col);
+          return;
+        }
+
+        case 'range slider':
+          wrap.appendChild(document.createElement('label')).textContent = r.label || r.name;
+          input = document.createElement('input');
+          input.type = 'range';
+          input.className = 'form-range';
+          if (r.options[0]) input.min = r.options[0];
+          if (r.options[1]) input.max = r.options[1];
+          if (r.options[2]) input.step= r.options[2];
           break;
 
         case 'date picker':
-          inputEl = document.createElement('input');
-          inputEl.type = 'date';
-          inputEl.className = 'form-control';
+        case 'time picker':
+        case 'datetime-local':
+        case 'month picker':
+        case 'week picker':
+          wrap.appendChild(document.createElement('label')).textContent = r.label || r.name;
+          input = document.createElement('input');
+          input.type = r.widget.replace(' picker','');
+          input.className = 'form-control';
           break;
 
         case 'checkbox':
-          inputEl = document.createElement('input');
-          inputEl.type = 'checkbox';
-          inputEl.className = 'form-check-input';
-          wrap.appendChild(inputEl);
+          input = document.createElement('input');
+          input.type = 'checkbox';
+          input.className = 'form-check-input';
+          wrap.appendChild(input);
           const chkLbl = document.createElement('label');
           chkLbl.className = 'form-check-label ms-2';
           chkLbl.textContent = r.label || r.name;
           wrap.appendChild(chkLbl);
           break;
 
-        case 'single select':
+        case 'radio group':
+        case 'toggle buttons': {
+          wrap.appendChild(document.createElement('label')).textContent = r.label || r.name;
+          const choices = (r.options[0] || '').split(',').map(s=>s.trim());
+          if (r.widget === 'toggle buttons') {
+            const btnGrp = document.createElement('div');
+            btnGrp.className='btn-group';
+            choices.forEach(optText => {
+              const lb = document.createElement('label');
+              lb.className='btn btn-outline-primary';
+              const ip = document.createElement('input');
+              ip.type='radio'; ip.name=r.id;
+              lb.appendChild(ip);
+              lb.append(optText);
+              btnGrp.appendChild(lb);
+            });
+            wrap.appendChild(btnGrp);
+          } else {
+            choices.forEach(optText => {
+              const div = document.createElement('div');
+              div.className='form-check';
+              const ip = document.createElement('input');
+              ip.type='radio'; ip.className='form-check-input'; ip.name=r.id;
+              const lb = document.createElement('label');
+              lb.className='form-check-label';
+              lb.textContent=optText;
+              div.append(ip,lb);
+              wrap.appendChild(div);
+            });
+          }
+          break;
+        }
+
         case 'select':
-          inputEl = document.createElement('select');
-          inputEl.className = 'form-select';
+        case 'single select':
+          
+          input = document.createElement('select');
+          input.className = 'form-select';
           r.options.forEach(optText => {
-            inputEl.appendChild(new Option(optText, optText));
+            const o = new Option(optText, optText);
+            input.appendChild(o);
           });
           break;
 
         case 'multi-select':
-          inputEl = document.createElement('select');
-          inputEl.className = 'form-select';
-          inputEl.multiple = true;
+          
+          input = document.createElement('select');
+          input.className = 'form-select';
+          input.multiple = true;
           r.options.forEach(optText => {
             const o = new Option(optText, optText);
             o.selected = true;
-            inputEl.appendChild(o);
+            input.appendChild(o);
           });
           break;
 
-        // … handle other widget types here as needed …
+        case 'progress bar': {
+          
+          let maxVal = 100;
+          const segs = [];
+          r.options.forEach(opt => {
+            const [k,v,c] = opt.split(':').map(s=>s.trim());
+            if (k.toLowerCase()==='max') maxVal = parseFloat(v)||maxVal;
+            else segs.push({value:+k,label:v,color:c});
+          });
+          const pc = document.createElement('div');
+          pc.className='progress';
+          segs.forEach(s => {
+            const bar = document.createElement('div');
+            const pct = s.value / maxVal * 100;
+            bar.className = 'progress-bar' + (s.color ? ` bg-${s.color}` : '');
+            bar.style.width = pct + '%';
+            if (s.label) bar.textContent = s.label;
+            pc.appendChild(bar);
+          });
+          wrap.appendChild(pc);
+          break;
+        }
+
+        case 'editable progress bar':
+          // treat like range slider
+          
+          input = document.createElement('input');
+          input.type = 'range';
+          input.className = 'form-range';
+          if (r.options[0]) input.value = r.options[0];
+          if (r.options[1]) input.max   = r.options[1];
+          wrap.appendChild(input);
+          break;
+
+        case 'dial gauge': {
+         
+          const gd = document.createElement('div');
+          gd.id = `gauge-${r.id}`;
+          gd.style.width='200px'; gd.style.height='160px';
+          wrap.appendChild(gd);
+          setTimeout(() => {
+            new JustGage({
+              id:      gd.id,
+              value:   (+r.options[0] + +r.options[1]) / 2,
+              min:     +r.options[0] || 0,
+              max:     +r.options[1] || 100,
+              title:   '', label:'', pointer:true, gaugeWidthScale:0.6
+            });
+          },0);
+          break;
+        }
 
         default:
-          inputEl = document.createElement('input');
-          inputEl.type = 'text';
-          inputEl.className = 'form-control';
+          input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'form-control';
       }
 
-      // every non-formula input needs an ID for formula listeners
-      if (inputEl) {
-        inputEl.id = `input-${r.id}`;
-        wrap.appendChild(inputEl);
+      // attach and ID for formula listening
+      if (input) {
+        input.id = `input-${r.id}`;
+        wrap.appendChild(input);
       }
 
       col.appendChild(wrap);
@@ -1339,10 +1468,11 @@ function renderPreviewForm() {
 
   form.appendChild(accordion);
 
-  // ─── 4) Wire & compute formulas ───────────────────────────────
+  // 4) Wire up formula re-evaluation
   attachFormulaListeners();
   evaluateAllFormulas();
 }
+
 
 
   // ── SAVE ALL BUTTON ─────────────────────────────────────────────────
@@ -1415,59 +1545,37 @@ function evaluateAllFormulas() {
   schemaRows
     .filter(r => r.widget === 'formula editor')
     .forEach(r => {
-      const toks = [...r.options]; // token array: field IDs, literals, ops, parentheses
-      const outputQueue = [];
-      const opStack     = [];
+      const toks = r.options || [];
+      let result = 0;
 
-      // Shunting-yard to RPN
-      toks.forEach(tok => {
-        if (/^[\d.]+$/.test(tok) || schemaRows.some(f=>f.id===tok)) {
-          // number literal or field
-          outputQueue.push(tok);
-        }
-        else if (OP_INFO[tok]) {
-          const { prec, assoc } = OP_INFO[tok];
-          while (opStack.length) {
-            const top = opStack[opStack.length-1];
-            if (OP_INFO[top] &&
-                ((assoc==='left'  && prec <= OP_INFO[top].prec) ||
-                 (assoc==='right' && prec <  OP_INFO[top].prec))) {
-              outputQueue.push(opStack.pop());
-            } else break;
+      if (toks.length > 0) {
+        // initialize from the first field token
+        const firstId = toks[0];
+        const firstEl = document.getElementById(`input-${firstId}`);
+        result = parseFloat(firstEl?.value) || 0;
+
+        // then apply each [ operator, fieldId ] pair
+        for (let i = 1; i < toks.length; i += 2) {
+          const op     = toks[i];
+          const nextId = toks[i+1];
+          const nextEl = document.getElementById(`input-${nextId}`);
+          const next   = parseFloat(nextEl?.value) || 0;
+
+          switch (op) {
+            case '+': result += next; break;
+            case '-': result -= next; break;
+            case '*': result *= next; break;
+            case '/': result = next !== 0 ? result / next : Infinity; break;
           }
-          opStack.push(tok);
         }
-        else if (tok === '(') {
-          opStack.push(tok);
-        }
-        else if (tok === ')') {
-          while (opStack.length && opStack[opStack.length-1] !== '(') {
-            outputQueue.push(opStack.pop());
-          }
-          opStack.pop(); // remove "("
-        }
-      });
-      // drain ops
-      while (opStack.length) outputQueue.push(opStack.pop());
+      }
 
-      // Evaluate RPN
-      const evalStack = [];
-      outputQueue.forEach(tok => {
-        if (OP_INFO[tok]) {
-          const b = evalStack.pop();
-          const a = evalStack.pop();
-          evalStack.push(OP_INFO[tok].fn(a,b));
-        } else {
-          evalStack.push(resolveToken(tok));
-        }
-      });
-      const result = evalStack[0] ?? '';
-
-      // Render
+      // write back into the output DIV
       const out = document.getElementById(`formula-${r.id}`);
       if (out) out.textContent = result;
     });
 }
+
 
 
 
