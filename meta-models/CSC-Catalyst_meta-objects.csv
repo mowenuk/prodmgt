@@ -1,12 +1,11 @@
-id,name,description,system
-1,Task,a piece of work to be done or undertaken,True
-2,Requirement,a thing that is needed or wanted,True
-3,Project,"Each project is typically designed to produce a distinct output, rather than a repetitive process",True
-4,Process,a series of actions or steps taken in order to achieve a particular end,True
-5,Entity,a thing with distinct and independent existence,True
-6,Attribute,"an object closely associated with or belonging to a specific person, thing, or office",True
-7,Location,a particular place or position,True
-8,System,a set of things working together as parts of a mechanism,True
-9,Application,a piece of software designed to perform a specific task or a set of tasks for a user,True
-10,Association,a relationship between two entities normally expressing cardinality,True
-11,Person,a real world thing,True
+id,name,description,domain
+1,Business Objective,A strategic goal the enterprise aims to achieve,Business
+2,Strategic Initiative,A program designed to realize business objectives,Business
+3,Business Capability,An ability that an organization possesses to achieve a specific purpose,Business
+4,Change Initiative,"A transformation effort affecting processes, capabilities, or systems",Change
+5,Risk,A potential event that could negatively affect change outcomes,Governance
+6,Benefit,A measurable improvement resulting from change,Performance
+7,Stakeholder,An individual or group affected by or involved in the change,People
+8,Deliverable,An output produced as part of a change initiative,Change
+9,Process,A series of steps to achieve a business result,Business
+10,Service,A function provided to stakeholders or systems,Business
