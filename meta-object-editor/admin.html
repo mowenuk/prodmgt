@@ -410,6 +410,7 @@
   <th>Data Type</th>
   <th>Widget</th>
   <th>Icon</th>  
+  <th>Default</th>
   <th>Options</th>
   <th>Group</th>
   <th>Layout</th>
@@ -841,6 +842,7 @@ tr.appendChild(iconTd);
     dataType:  r.dataType,
     widget:    r.widget,
     icon:      r.icon || '',          // read icon
+      defaultValue: r.default_value || '',
     options:   // split the CSV cell into an array for **all** widgets
       (r.options || '')
         .split(',')
@@ -982,7 +984,16 @@ iconIn.addEventListener('change', () => {
 iconTd.appendChild(iconIn);
 iconTd.appendChild(preview);
 tr.appendChild(iconTd);
-
+// --- Default Value cell ---
+const defaultTd = document.createElement('td');
+const defaultIn = document.createElement('input');
+defaultIn.type      = 'text';
+defaultIn.className = 'form-control form-control-sm';
+defaultIn.value     = r.defaultValue || '';
+defaultIn.placeholder = 'e.g. Low, 4, 2025-01-01';
+defaultIn.onchange  = e => { r.defaultValue = e.target.value; };
+defaultTd.appendChild(defaultIn);
+tr.appendChild(defaultTd);
     // ───── Options ─────────────────────────────────
     (() => {
       const optTd = document.createElement('td');
@@ -1228,13 +1239,14 @@ optTd.appendChild(builder);
       id:        r.id,      name:     r.name,
       label:     r.label,   type_IDs: r.type_IDs.join(','),
       dataType:  r.dataType, widget:   r.widget,
-  icon:      r.icon,
+      icon:      r.icon,
+      default_value:r.defaultValue, 
       options:   r.options.join(','), group:    r.group,
       layout:    r.layout,  system:   r.system
     }));
     saveCSV(out,'meta-object-properties.csv',[
       'id','name','label','type_IDs',
-      'dataType','widget','icon','options','group','layout','system'
+      'dataType','widget','icon','default_value','options','group','layout','system'
     ]);
   });
   document.getElementById('addSchemaBtn').addEventListener('click', () => {
@@ -1275,29 +1287,26 @@ function renderPreviewForm() {
   const form   = document.getElementById('previewForm');
   form.innerHTML = '';
 
-  // ─── Header: show meta‐type icon + name + ID ───────────
+  // ─── Header ───────────────────────────────────────────────
   const mt = metaTypes.find(m => m.id === typeId) || {};
   const headerDiv = document.createElement('div');
   headerDiv.className = 'mb-4';
   const titleEl = document.createElement('h4');
   titleEl.className = 'd-flex align-items-baseline';
-
   if (mt.icon) {
     const iconEl = document.createElement('i');
     iconEl.className = `bi bi-${mt.icon} me-2`;
     titleEl.appendChild(iconEl);
   }
-
-  titleEl.appendChild(document.createTextNode(mt.name || ''));
+  titleEl.append(mt.name || '');
   const idEl = document.createElement('small');
   idEl.className = 'text-secondary ms-2';
   idEl.textContent = `ID: ${mt.id || ''}`;
   titleEl.appendChild(idEl);
-
   headerDiv.appendChild(titleEl);
   form.appendChild(headerDiv);
 
-  // 2) Group & filter fields
+  // ─── Group & filter fields ─────────────────────────────────
   const grouped = {};
   schemaRows.forEach(r => {
     if (r.name === 'id' || r.name === 'object_type') return;
@@ -1306,40 +1315,35 @@ function renderPreviewForm() {
     (grouped[grp] = grouped[grp] || []).push(r);
   });
 
-  // 3) Build accordion
+  // ─── Build accordion ───────────────────────────────────────
   const accordion = document.createElement('div');
   accordion.className = 'accordion';
-  accordion.id = 'previewAccordion';
+  accordion.id        = 'previewAccordion';
 
   Object.entries(grouped).forEach(([groupName, fields], gIdx) => {
     const groupId = `group${gIdx}`;
     const onlyOne = fields.length === 1;
 
-    // a) Accordion header
-    const item = document.createElement('div');
-    item.className = 'accordion-item';
-    const hdr = document.createElement('h2');
-    hdr.className = 'accordion-header';
-    const btn = document.createElement('button');
+    // a) Header
+    const item = document.createElement('div'); item.className = 'accordion-item';
+    const hdr  = document.createElement('h2'); hdr.className = 'accordion-header';
+    const btn  = document.createElement('button');
     btn.className = `accordion-button${gIdx>0?' collapsed':''}`;
-    btn.type = 'button';
+    btn.type       = 'button';
     btn.setAttribute('data-bs-toggle','collapse');
     btn.setAttribute('data-bs-target', `#collapse-${groupId}`);
     btn.textContent = groupName;
-    hdr.appendChild(btn);
-    item.appendChild(hdr);
+    hdr.appendChild(btn); item.appendChild(hdr);
 
-    // b) Collapsible body
+    // b) Body
     const collapse = document.createElement('div');
     collapse.id = `collapse-${groupId}`;
     collapse.className = `accordion-collapse collapse${gIdx===0?' show':''}`;
     collapse.setAttribute('data-bs-parent','#previewAccordion');
-    const body = document.createElement('div');
-    body.className = 'accordion-body';
-    const row  = document.createElement('div');
-    row.className = 'row g-3';
+    const body = document.createElement('div'); body.className = 'accordion-body';
+    const row  = document.createElement('div'); row.className = 'row g-3';
 
-    // c) Field rendering
+    // c) Each field
     fields.forEach(r => {
       const col = document.createElement('div');
       // layout
@@ -1359,7 +1363,7 @@ function renderPreviewForm() {
         ? 'form-check form-switch mt-2'
         : 'mb-3';
 
-      // ── Generic Label + Icon ───────────────────────────
+      // Generic Label + Icon
       if (r.widget !== 'checkbox') {
         const lbl = document.createElement('label');
         lbl.className = 'form-label';
@@ -1368,35 +1372,22 @@ function renderPreviewForm() {
           ico.className = `bi bi-${r.icon} me-1`;
           lbl.appendChild(ico);
         }
-        lbl.appendChild(document.createTextNode(r.label || r.name));
+        lbl.append(r.label || r.name);
         wrap.appendChild(lbl);
       }
-      // ── Formula editor ─────────────────────────────
+
+      // Formula editor (read-only output)
       if (r.widget === 'formula editor') {
-        // label
-        const lbl = document.createElement('label');
-        lbl.className = 'form-label';
-        // prepend the field’s icon if set
-        if (r.icon) {
-          const ico = document.createElement('i');
-          ico.className = `bi bi-${r.icon} me-1`;
-          lbl.appendChild(ico);
-        }
-
-        lbl.textContent = r.label || r.name;
-        wrap.appendChild(lbl);
-
-        // help text summary
         const help = document.createElement('div');
         help.className = 'form-text text-muted';
-        help.textContent = 'Formula: ' + r.options.map(tok => {
-          if (['+','-','*','/'].includes(tok)) return tok;
-          const fld = schemaRows.find(f => f.id === tok);
-          return fld ? (fld.label || fld.name) : tok;
-        }).join(' ');
+        help.textContent = 'Formula: ' +
+          r.options.map(tok =>
+            ['+','-','*','/'].includes(tok)
+              ? tok
+              : (schemaRows.find(f=>f.id===tok)?.label || tok)
+          ).join(' ');
         wrap.appendChild(help);
 
-        // live result
         const out = document.createElement('div');
         out.id = `formula-${r.id}`;
         out.className = 'form-control-plaintext';
@@ -1407,50 +1398,42 @@ function renderPreviewForm() {
         return;
       }
 
-      // ── Default label (except checkbox) ──────────────
-      if (r.widget !== 'checkbox') {
-        const lbl = document.createElement('label');
-        lbl.className = 'form-label';
-        lbl.textContent = r.label || r.name;
-        wrap.appendChild(lbl);
-      }
+      // Generic defaultValue for primitives
+      const val = r.defaultValue != null && r.defaultValue !== ''
+        ? r.defaultValue
+        : (r.options[0] || '');
 
-      // ── Widget cases ─────────────────────────────────
       let input;
+
       switch (r.widget) {
         case 'text input':
-          input = document.createElement('input');
-          input.type = 'text';
-          input.className = 'form-control';
-          if (r.options[0]) input.value = r.options[0];
-          break;
-
         case 'search input':
         case 'email input':
         case 'url input':
         case 'tel input':
-          input = document.createElement('input');
-          input.type = r.widget.split(' ')[0];
-          input.className = 'form-control';
-          break;
-
         case 'floating label':
           input = document.createElement('input');
-          input.type = 'text';
+          input.type = r.widget.includes('input')
+            ? r.widget.split(' ')[0]
+            : 'text';
           input.className = 'form-control';
+          input.value     = val;
+          wrap.appendChild(input);
           break;
 
         case 'textarea':
           input = document.createElement('textarea');
           input.className = 'form-control';
-          if (r.options[0]) input.value = r.options[0];
+          input.value     = val;
+          wrap.appendChild(input);
           break;
 
         case 'spinner':
           input = document.createElement('input');
           input.type = 'number';
           input.className = 'form-control';
-          if (r.options[0]) input.value = r.options[0];
+          input.value     = val;
+          wrap.appendChild(input);
           break;
 
         case 'stepper': {
@@ -1459,26 +1442,25 @@ function renderPreviewForm() {
           const dec = document.createElement('button');
           dec.type='button'; dec.className='btn btn-outline-secondary'; dec.textContent='−';
           const num = document.createElement('input');
-          num.type='number'; num.className='form-control';
+          num.type='number'; num.className='form-control'; num.value=val;
           const inc = document.createElement('button');
           inc.type='button'; inc.className='btn btn-outline-secondary'; inc.textContent='+';
           dec.onclick = () => num.value = (parseFloat(num.value)||0) - 1;
           inc.onclick = () => num.value = (parseFloat(num.value)||0) + 1;
           grp.append(dec, num, inc);
           wrap.appendChild(grp);
-          col.appendChild(wrap);
-          row.appendChild(col);
-          return;
+          break;
         }
 
         case 'range slider':
-          wrap.appendChild(document.createElement('label')).textContent = r.label || r.name;
           input = document.createElement('input');
           input.type = 'range';
           input.className = 'form-range';
-          if (r.options[0]) input.min = r.options[0];
-          if (r.options[1]) input.max = r.options[1];
-          if (r.options[2]) input.step= r.options[2];
+          if (r.options[0]) input.min  = r.options[0];
+          if (r.options[1]) input.max  = r.options[1];
+          if (r.options[2]) input.step = r.options[2];
+          input.value     = val;
+          wrap.appendChild(input);
           break;
 
         case 'date picker':
@@ -1486,16 +1468,18 @@ function renderPreviewForm() {
         case 'datetime-local':
         case 'month picker':
         case 'week picker':
-          wrap.appendChild(document.createElement('label')).textContent = r.label || r.name;
           input = document.createElement('input');
           input.type = r.widget.replace(' picker','');
           input.className = 'form-control';
+          input.value     = val;
+          wrap.appendChild(input);
           break;
 
         case 'checkbox':
           input = document.createElement('input');
           input.type = 'checkbox';
           input.className = 'form-check-input';
+          input.checked = (val === 'true' || val === true);
           wrap.appendChild(input);
           const chkLbl = document.createElement('label');
           chkLbl.className = 'form-check-label ms-2';
@@ -1505,75 +1489,69 @@ function renderPreviewForm() {
 
         case 'radio group':
         case 'toggle buttons': {
-          wrap.appendChild(document.createElement('label')).textContent = r.label || r.name;
           const choices = (r.options[0] || '').split(',').map(s=>s.trim());
-          if (r.widget === 'toggle buttons') {
-            const btnGrp = document.createElement('div');
-            btnGrp.className='btn-group';
-            choices.forEach(optText => {
-              const lb = document.createElement('label');
-              lb.className='btn btn-outline-primary';
-              const ip = document.createElement('input');
-              ip.type='radio'; ip.name=r.id;
-              lb.appendChild(ip);
-              lb.append(optText);
-              btnGrp.appendChild(lb);
-            });
-            wrap.appendChild(btnGrp);
-          } else {
-            choices.forEach(optText => {
-              const div = document.createElement('div');
-              div.className='form-check';
-              const ip = document.createElement('input');
-              ip.type='radio'; ip.className='form-check-input'; ip.name=r.id;
-              const lb = document.createElement('label');
-              lb.className='form-check-label';
-              lb.textContent=optText;
-              div.append(ip,lb);
-              wrap.appendChild(div);
-            });
-          }
+          choices.forEach(optText => {
+            const div = document.createElement(r.widget === 'toggle buttons'
+              ? 'label'
+              : 'div');
+            div.className = r.widget === 'toggle buttons'
+              ? 'btn btn-outline-primary me-1'
+              : 'form-check';
+            const ip = document.createElement('input');
+            ip.type = 'radio';
+            ip.name = r.id;
+            ip.className = r.widget === 'toggle buttons'
+              ? 'btn-check'
+              : 'form-check-input';
+            ip.checked = (optText === val);
+            div.appendChild(ip);
+            const lb = document.createElement('span');
+            lb.textContent = optText;
+            if (r.widget !== 'toggle buttons') lb.className = 'form-check-label';
+            div.appendChild(lb);
+            wrap.appendChild(div);
+          });
           break;
         }
 
         case 'select':
         case 'single select':
-          
           input = document.createElement('select');
           input.className = 'form-select';
           r.options.forEach(optText => {
             const o = new Option(optText, optText);
             input.appendChild(o);
           });
+          input.value = val;
+          wrap.appendChild(input);
           break;
 
         case 'multi-select':
-          
           input = document.createElement('select');
           input.className = 'form-select';
           input.multiple = true;
           r.options.forEach(optText => {
             const o = new Option(optText, optText);
-            o.selected = true;
+            o.selected = (optText === val);
             input.appendChild(o);
           });
+          wrap.appendChild(input);
           break;
 
         case 'progress bar': {
-          
           let maxVal = 100;
           const segs = [];
           r.options.forEach(opt => {
             const [k,v,c] = opt.split(':').map(s=>s.trim());
-            if (k.toLowerCase()==='max') maxVal = parseFloat(v)||maxVal;
-            else segs.push({value:+k,label:v,color:c});
+            if (k.toLowerCase()==='max') maxVal = parseFloat(v) || maxVal;
+            else segs.push({ value:+k, label:v, color:c });
           });
           const pc = document.createElement('div');
           pc.className='progress';
           segs.forEach(s => {
             const bar = document.createElement('div');
             const pct = s.value / maxVal * 100;
-            bar.className = 'progress-bar' + (s.color ? ` bg-${s.color}` : '');
+            bar.className = 'progress-bar' + (s.color?` bg-${s.color}`:'');
             bar.style.width = pct + '%';
             if (s.label) bar.textContent = s.label;
             pc.appendChild(bar);
@@ -1583,182 +1561,123 @@ function renderPreviewForm() {
         }
 
         case 'editable progress bar':
-          // treat like range slider
-          
           input = document.createElement('input');
           input.type = 'range';
           input.className = 'form-range';
-          if (r.options[0]) input.value = r.options[0];
+          if (r.options[0]) input.value = (r.defaultValue || r.options[0]);
           if (r.options[1]) input.max   = r.options[1];
           wrap.appendChild(input);
           break;
 
         case 'dial gauge': {
-         
           const gd = document.createElement('div');
           gd.id = `gauge-${r.id}`;
           gd.style.width='200px'; gd.style.height='160px';
           wrap.appendChild(gd);
           setTimeout(() => {
             new JustGage({
-              id:      gd.id,
-              value:   (+r.options[0] + +r.options[1]) / 2,
-              min:     +r.options[0] || 0,
-              max:     +r.options[1] || 100,
-              title:   '', label:'', pointer:true, gaugeWidthScale:0.6
+              id:    gd.id,
+              value:  r.defaultValue
+                     ? +r.defaultValue
+                     : ((+r.options[0]||0) + (+r.options[1]||100)) / 2,
+              min:   +r.options[0] || 0,
+              max:   +r.options[1] || 100,
+              title: '', label:'', pointer:true, gaugeWidthScale:0.6
             });
           },0);
           break;
         }
+
         case 'rich text': {
-          // 1) Insert the label (your generic-label logic will already have done this if you placed it above the switch)
-          // 2) Create a container for Quill
           const editorDiv = document.createElement('div');
           editorDiv.id        = `preview-rich-${r.id}`;
           editorDiv.className = 'form-control';
           editorDiv.style.minHeight = '120px';
           wrap.appendChild(editorDiv);
-
-          // 3) Initialize Quill in read-only or editable mode
           setTimeout(() => {
             const q = new Quill(editorDiv, {
               theme:    'snow',
-              readOnly: false,        // or true if you want preview-only
-              placeholder: r.options[0] || ''
+              placeholder: r.defaultValue || r.options[0] || ''
             });
-            // load the plain-text default you saved
-            if (r.options[0]) q.setText(r.options[0]);
-            // keep track if you need it later
+            if (r.defaultValue) q.setText(r.defaultValue);
+            else if (r.options[0]) q.setText(r.options[0]);
             quillEditors[`preview-${r.id}`] = q;
           }, 0);
-
-          // We're done with this field
-          col.appendChild(wrap);
-          row.appendChild(col);
-          return;
+          break;
         }
-        // ─── Single Choice (no colour) ─────────────────────────
-// ─── Single Choice (no color) ─────────────────────────────────
-case 'single choice': {
-  // hidden <input> so formulas can read the numeric value
-  const hidden = document.createElement('input');
-  hidden.type = 'hidden';
-  hidden.id   = `input-${r.id}`;
-  wrap.appendChild(hidden);
 
-  // build the <select> of Label:Value options
-  const sel = document.createElement('select');
-  sel.className = 'form-select';
-  sel.onchange = () => {
-    hidden.value = sel.value;
-    evaluateAllFormulas();
-  };
+        case 'single choice': {
+          const hidden = document.createElement('input');
+          hidden.type = 'hidden'; hidden.id = `input-${r.id}`;
+          wrap.appendChild(hidden);
+          const sel = document.createElement('select');
+          sel.className = 'form-select';
+          sel.onchange = () => {
+            hidden.value = sel.value;
+            evaluateAllFormulas();
+          };
+          r.options.forEach(opt => {
+            const [label,val] = opt.split(':').map(s=>s.trim());
+            sel.appendChild(new Option(label,val));
+          });
+          // apply defaultValue or first
+          if (r.defaultValue) sel.value = r.defaultValue;
+          hidden.value = sel.value;
+          wrap.appendChild(sel);
+          break;
+        }
 
-  // populate options
-  r.options.forEach(opt => {
-    // opt like "High:1"
-    const [label,val] = opt.split(':').map(s=>s.trim());
-    const o = new Option(label, val);
-    sel.appendChild(o);
-  });
+        case 'single choice color': {
+          const hidden = document.createElement('input');
+          hidden.type = 'hidden'; hidden.id = `input-${r.id}`;
+          wrap.appendChild(hidden);
+          const dd = document.createElement('div');
+          dd.className = 'dropdown';
+          const btn = document.createElement('button');
+          btn.className = 'btn btn-sm btn-outline-secondary dropdown-toggle';
+          btn.type = 'button';
+          btn.setAttribute('data-bs-toggle','dropdown');
+          dd.appendChild(btn);
+          const menu = document.createElement('ul');
+          menu.className = 'dropdown-menu';
+          dd.appendChild(menu);
 
-  // initialize
-  if (sel.options.length) {
-    sel.selectedIndex = 0;
-    hidden.value      = sel.value;
-  }
+          r.options.forEach((optStr,i) => {
+            const parts = optStr.split(':').map(s=>s.trim());
+            let label, color, value;
+            if (parts.length===3) [label,color,value] = parts;
+            else [color,value] = parts, label = value;
+            const bsClr = BS_COLOR_MAP[color.toLowerCase()]||'secondary';
+            const li = document.createElement('li');
+            const a  = document.createElement('a');
+            a.className = `dropdown-item text-white bg-${bsClr}`;
+            a.href = '#'; a.textContent = label;
+            a.addEventListener('click', e => {
+              e.preventDefault();
+              hidden.value = value;
+              btn.textContent = label;
+              btn.className   = `btn btn-sm btn-${bsClr} dropdown-toggle`;
+              bootstrap.Dropdown.getOrCreateInstance(btn).hide();
+              evaluateAllFormulas();
+            });
+            li.appendChild(a); menu.appendChild(li);
 
-  wrap.appendChild(sel);
-  col.appendChild(wrap);
-  row.appendChild(col);
-  return;
-}
+            // initial: match defaultValue first
+            if (r.defaultValue && value===r.defaultValue || i===0 && !r.defaultValue) {
+              hidden.value = value;
+              btn.textContent = label;
+              btn.className   = `btn btn-sm btn-${bsClr} dropdown-toggle`;
+            }
+          });
 
-// ─── Single Choice Color ───────────────────────────────────────
-case 'single choice color': {
-  // hidden <input> so formulas can read the numeric value
-  const hidden = document.createElement('input');
-  hidden.type = 'hidden';
-  hidden.id   = `input-${r.id}`;
-  wrap.appendChild(hidden);
-
-  // dropdown container
-  const dd = document.createElement('div');
-  dd.className = 'dropdown';
-
-  // toggle button (shows label or value)
-  const btn = document.createElement('button');
-  btn.className = 'btn btn-sm btn-outline-secondary dropdown-toggle';
-  btn.type = 'button';
-  btn.setAttribute('data-bs-toggle','dropdown');
-  dd.appendChild(btn);
-
-
-
-  // menu
-  const menu = document.createElement('ul');
-  menu.className = 'dropdown-menu';
-  dd.appendChild(menu);
-
-  // parse & populate
-  r.options.forEach((optStr, i) => {
-    // can be "Label:Color:Value" or "Color:Value"
-    const parts = optStr.split(':').map(s=>s.trim());
-    let label, color, value;
-    if (parts.length === 3) {
-      [label, color, value] = parts;
-    } else {
-      [color, value] = parts;
-      label = value;
-    }
-    const bsClr = BS_COLOR_MAP[color.toLowerCase()] || 'secondary';
-
-    const li = document.createElement('li');
-    const a  = document.createElement('a');
-    a.className = `dropdown-item text-white bg-${bsClr}`;
-    a.href      = '#';
-    a.textContent = label;
-    a.addEventListener('click', e => {
-      e.preventDefault();
-      // store numeric value
-      hidden.value = value;
-      // update button
-      btn.textContent = label;
-      btn.className   = `btn btn-sm btn-${bsClr} dropdown-toggle`;
-            // 3) hide the dropdown programmatically
-      const dd = bootstrap.Dropdown.getOrCreateInstance(btn);
-      dd.hide();
-      // re-run formulas
-      evaluateAllFormulas();
-    });
-    li.appendChild(a);
-    menu.appendChild(li);
-
-    // initialize first option
-    if (i === 0) {
-      hidden.value    = value;
-      btn.textContent = label;
-      btn.className   = `btn btn-sm btn-${bsClr} dropdown-toggle`;
-    }
-  });
-
-  wrap.appendChild(dd);
-  col.appendChild(wrap);
-  row.appendChild(col);
-  return;
-}
-
-
-        default:
-          input = document.createElement('input');
-          input.type = 'text';
-          input.className = 'form-control';
+          wrap.appendChild(dd);
+          break;
+        }
       }
 
-      // attach and ID for formula listening
+      // attach for formulas
       if (input) {
         input.id = `input-${r.id}`;
-        wrap.appendChild(input);
       }
 
       col.appendChild(wrap);
@@ -1773,10 +1692,11 @@ case 'single choice color': {
 
   form.appendChild(accordion);
 
-  // 4) Wire up formula re-evaluation
+  // re-wire formula listeners
   attachFormulaListeners();
   evaluateAllFormulas();
 }
+
 
 
 
@@ -1804,11 +1724,12 @@ case 'single choice color': {
       type_IDs:r.type_IDs.join(','),
       dataType:r.dataType,widget:r.widget,
       icon:      r.icon    || '',
+      default_value:r.defaultValue,  
       options:r.options.join(','),group:r.group,
       layout:r.layout,system:r.system
     })), 'meta-object-properties.csv',[
       'id','name','label','type_IDs',
-      'dataType','widget','icon','options','group','layout','system'
+      'dataType','widget','icon','default_value','options','group','layout','system'
     ]);
   });
 
