@@ -1,11 +1,11 @@
-id,name,description,domain
-201,Business Process,A set of related tasks that achieve a business goal,Business Layer
-202,Requirement,A specification of what should be implemented,Business Layer
-203,Project,An endeavor to deliver a solution,Business Layer
-204,Application Component,Software that supports business processes,Application Layer
-205,Data Entity,A logical data object,Technology Layer
-206,Technology Component,Technology used to support applications,Technology
-207,Location,Physical or virtual location,Technology
-208,Actor,A user or system that interacts with processes,Business Layer
-209,Service,A unit of functionality exposed by components,Application Layer
-210,Capability,A business ability delivered by processes and services,Business Layer
+id,name,description,system
+1,Business Actor,Represents an organizational entity involved in business processes,False
+2,Business Role,Represents a responsibility assigned to an actor,False
+3,Business Process,Describes a sequence of business behaviors,False
+4,Application Component,Encapsulates application functionality,False
+5,Application Service,Exposes application behavior to its environment,False
+6,Technology Node,Represents a computational resource,False
+7,Artifact,A physical piece of data used or produced in processes,False
+8,Capability,An ability that an active structure element possesses,False
+9,Course of Action,An approach or plan for achieving a goal,False
+10,Value Stream,A sequence of activities creating customer value,False

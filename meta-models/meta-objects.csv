@@ -1,12 +1,12 @@
-id,name,description,system
-1,Task,a piece of work to be done or undertaken,true
-2,Requirement,a thing that is needed or wanted,true
-3,Project,"Each project is typically designed to produce a distinct output, rather than a repetitive process",true
-4,Process,a series of actions or steps taken in order to achieve a particular end,true
-5,Entity,a thing with distinct and independent existence,true
-6,Attribute,"an object closely associated with or belonging to a specific person, thing, or office",true
-7,Location,a particular place or position,true
-8,System,a set of things working together as parts of a mechanism,true
-9,Application,a piece of software designed to perform a specific task or a set of tasks for a user,true
-10,Association,a relationship between two entities normally expressing cardinality,true
-11,Person,a real world thing,true
+id,name,description,icon,system
+1,Task,a piece of work to be done or undertaken,,TRUE
+2,Requirement,a thing that is needed or wanted,,TRUE
+3,Project,"Each project is typically designed to produce a distinct output, rather than a repetitive process",,TRUE
+4,Process,a series of actions or steps taken in order to achieve a particular end,,TRUE
+5,Entity,a thing with distinct and independent existence,,TRUE
+6,Attribute,"an object closely associated with or belonging to a specific person, thing, or office",,TRUE
+7,Location,a particular place or position,,TRUE
+8,System,a set of things working together as parts of a mechanism,,TRUE
+9,Application,a piece of software designed to perform a specific task or a set of tasks for a user,,TRUE
+10,Association,a relationship between two entities normally expressing cardinality,,TRUE
+11,Person,a real world thing,,TRUE

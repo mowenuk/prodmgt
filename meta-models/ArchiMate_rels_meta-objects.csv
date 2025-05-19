@@ -1,10 +1,6 @@
-id,name,reversename,description,fromMetaObjectID,toMetaObjectID
-301,realizes,is realized by,One element realizes another,204,202
-302,serves,is served by,Application serves a business process,204,201
-303,accesses,is accessed by,Application accesses data,204,205
-304,assigned to,has assignment,Actor assigned to business process,208,201
-305,uses,is used by,Application uses technology,204,206
-306,located at,hosts,Component located at a place,206,207
-307,delivers,is delivered by,Process delivers capability,201,210
-308,exposes,is exposed by,Application exposes a service,204,209
-309,supports,is supported by,Service supports a business process,209,201
+id,name,reverseName,label,fromMetaObjectID,toMetaObjectID,system
+1,triggers,is triggered by,,3,3,False
+2,realizes,is realized by,,4,5,False
+3,flows to,flows from,,5,6,False
+4,accesses,is accessed by,,4,7,False
+5,supports,is supported by,,6,3,False
