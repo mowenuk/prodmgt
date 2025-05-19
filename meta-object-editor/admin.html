@@ -8,6 +8,8 @@
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+
 <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
 <script src="https://cdn.quilljs.com/1.3.6/quill.min.js"></script>
 
@@ -35,6 +37,8 @@
 }
 
   </style>
+
+
 </head>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 
@@ -68,7 +72,7 @@
   </div>
   <table>
     <thead>
-      <tr><th>ID</th><th>Name</th><th>Description</th><th>System</th><th>Actions</th></tr>
+      <tr><th>ID</th><th>Name</th><th>Description</th><th>System</th><th>Icon</th><th>Actions</th></tr>
     </thead>
     <tbody id="typesBody"></tbody>
   </table>
@@ -325,6 +329,9 @@
 </div>
 
 <script>
+
+
+
   document.addEventListener('DOMContentLoaded', () => {
     const toggleBtn = document.getElementById('exampleColorDropdown');
     const items = toggleBtn.nextElementSibling.querySelectorAll('.dropdown-item');
@@ -402,6 +409,7 @@
   <th>Types</th>
   <th>Data Type</th>
   <th>Widget</th>
+  <th>Icon</th>  
   <th>Options</th>
   <th>Group</th>
   <th>Layout</th>
@@ -641,6 +649,30 @@ window.addEventListener('DOMContentLoaded', () => {
       descTd.appendChild(descIn);
       tr.appendChild(descTd);
 
+    // --- Icon cell ---
+const iconTd = document.createElement('td');
+
+// create an <input> tied to our <datalist>
+const iconIn = document.createElement('input');
+iconIn.type = 'text';
+iconIn.className = 'form-control form-control-sm';
+iconIn.setAttribute('list', 'icon-list');
+iconIn.value = t.icon || '';
+iconIn.onchange = () => {
+  t.icon = iconIn.value;
+};
+
+// live preview of the selected icon
+const preview = document.createElement('i');
+preview.className = `bi bi-${iconIn.value || 'star'} ms-2`;
+iconIn.addEventListener('change', () => {
+  preview.className = `bi bi-${iconIn.value} ms-2`;
+});
+
+iconTd.appendChild(iconIn);
+iconTd.appendChild(preview);
+tr.appendChild(iconTd);
+
       // System
       const syTd = document.createElement('td');
       const syCb = document.createElement('input');
@@ -676,14 +708,15 @@ window.addEventListener('DOMContentLoaded', () => {
     renderTypes();
   });
   document.getElementById('downloadTypesBtn').addEventListener('click', () => {
-    saveCSV(metaTypes, 'meta-objects.csv', ['id','name','description','system']);
+    saveCSV(metaTypes, 'meta-objects.csv', ['id','name','description','system','icon']);
   });
   function loadTypesFromData(data) {
     metaTypes = data.map(r => ({
       id: r.id,
       name: r.name,
       description: r.description,
-      system: String(r.system||'').toLowerCase()==='true'
+      system: String(r.system||'').toLowerCase()==='true',
+      icon:         r.icon || ''          // read icon
     }));
     renderTypes();
   }
@@ -807,6 +840,7 @@ window.addEventListener('DOMContentLoaded', () => {
     type_IDs:  (r.type_IDs || '').split(',').map(s => s.trim()),
     dataType:  r.dataType,
     widget:    r.widget,
+    icon:      r.icon || '',          // read icon
     options:   // split the CSV cell into an array for **all** widgets
       (r.options || '')
         .split(',')
@@ -924,6 +958,30 @@ function renderSchema() {
       tr.appendChild(td);
     })();
 
+      // --- Icon cell ---
+
+const iconTd = document.createElement('td');
+
+// input + datalist
+const iconIn = document.createElement('input');
+iconIn.type = 'text';
+iconIn.className = 'form-control form-control-sm';
+iconIn.setAttribute('list', 'icon-list');
+iconIn.value = r.icon || '';
+iconIn.onchange = () => {
+  r.icon = iconIn.value;
+};
+
+// preview glyph
+const preview = document.createElement('i');
+preview.className = `bi bi-${iconIn.value || 'star'} ms-2`;
+iconIn.addEventListener('change', () => {
+  preview.className = `bi bi-${iconIn.value} ms-2`;
+});
+
+iconTd.appendChild(iconIn);
+iconTd.appendChild(preview);
+tr.appendChild(iconTd);
 
     // ───── Options ─────────────────────────────────
     (() => {
@@ -1170,12 +1228,13 @@ optTd.appendChild(builder);
       id:        r.id,      name:     r.name,
       label:     r.label,   type_IDs: r.type_IDs.join(','),
       dataType:  r.dataType, widget:   r.widget,
+  icon:      r.icon,
       options:   r.options.join(','), group:    r.group,
       layout:    r.layout,  system:   r.system
     }));
     saveCSV(out,'meta-object-properties.csv',[
       'id','name','label','type_IDs',
-      'dataType','widget','options','group','layout','system'
+      'dataType','widget','icon','options','group','layout','system'
     ]);
   });
   document.getElementById('addSchemaBtn').addEventListener('click', () => {
@@ -1216,17 +1275,25 @@ function renderPreviewForm() {
   const form   = document.getElementById('previewForm');
   form.innerHTML = '';
 
-  // 1) Header: meta-type name + ID
+  // ─── Header: show meta‐type icon + name + ID ───────────
   const mt = metaTypes.find(m => m.id === typeId) || {};
   const headerDiv = document.createElement('div');
   headerDiv.className = 'mb-4';
   const titleEl = document.createElement('h4');
   titleEl.className = 'd-flex align-items-baseline';
-  titleEl.textContent = mt.name || '';
+
+  if (mt.icon) {
+    const iconEl = document.createElement('i');
+    iconEl.className = `bi bi-${mt.icon} me-2`;
+    titleEl.appendChild(iconEl);
+  }
+
+  titleEl.appendChild(document.createTextNode(mt.name || ''));
   const idEl = document.createElement('small');
   idEl.className = 'text-secondary ms-2';
   idEl.textContent = `ID: ${mt.id || ''}`;
   titleEl.appendChild(idEl);
+
   headerDiv.appendChild(titleEl);
   form.appendChild(headerDiv);
 
@@ -1292,11 +1359,30 @@ function renderPreviewForm() {
         ? 'form-check form-switch mt-2'
         : 'mb-3';
 
+      // ── Generic Label + Icon ───────────────────────────
+      if (r.widget !== 'checkbox') {
+        const lbl = document.createElement('label');
+        lbl.className = 'form-label';
+        if (r.icon) {
+          const ico = document.createElement('i');
+          ico.className = `bi bi-${r.icon} me-1`;
+          lbl.appendChild(ico);
+        }
+        lbl.appendChild(document.createTextNode(r.label || r.name));
+        wrap.appendChild(lbl);
+      }
       // ── Formula editor ─────────────────────────────
       if (r.widget === 'formula editor') {
         // label
         const lbl = document.createElement('label');
         lbl.className = 'form-label';
+        // prepend the field’s icon if set
+        if (r.icon) {
+          const ico = document.createElement('i');
+          ico.className = `bi bi-${r.icon} me-1`;
+          lbl.appendChild(ico);
+        }
+
         lbl.textContent = r.label || r.name;
         wrap.appendChild(lbl);
 
@@ -1697,7 +1783,7 @@ case 'single choice color': {
   // ── SAVE ALL BUTTON ─────────────────────────────────────────────────
   document.getElementById('saveAllBtn').addEventListener('click', () => {
     // Types
-    saveCSV(metaTypes,'meta-objects.csv',['id','name','description','system']);
+    saveCSV(metaTypes,'meta-objects.csv',['id','name','description','system','icon']);
     // Rels
     saveCSV(metaRels.map(r=>({
       id:r.id,name:r.name,reverseName:r.reverseName,
@@ -1717,11 +1803,12 @@ case 'single choice color': {
       id:r.id,name:r.name,label:r.label,
       type_IDs:r.type_IDs.join(','),
       dataType:r.dataType,widget:r.widget,
+      icon:      r.icon    || '',
       options:r.options.join(','),group:r.group,
       layout:r.layout,system:r.system
     })), 'meta-object-properties.csv',[
       'id','name','label','type_IDs',
-      'dataType','widget','options','group','layout','system'
+      'dataType','widget','icon','options','group','layout','system'
     ]);
   });
 
@@ -1825,6 +1912,46 @@ function attachFormulaListeners() {
 }
 
 </script>
+<datalist id="icon-list"></datalist>
+<script>
+  async function loadIconManifest() {
+    const manifestUrl =
+      'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.json';
+    try {
+      const res = await fetch(manifestUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      console.log('Raw icon manifest payload:', data);
+
+      // 1) figure out where the names live
+      let icons;
+      if (Array.isArray(data)) {
+        icons = data;
+      } else if (Array.isArray(data.icons)) {
+        icons = data.icons;
+      } else {
+        // fallback: assume the keys of the object are icon names
+        icons = Object.keys(data);
+      }
+
+      // 2) sort & populate the <datalist>
+      const dl = document.getElementById('icon-list');
+      dl.innerHTML = '';
+      icons
+        .sort((a, b) => a.localeCompare(b))
+        .forEach(name => {
+          const opt = document.createElement('option');
+          opt.value = name;
+          dl.appendChild(opt);
+        });
+    } catch (err) {
+      console.error('Failed to load icon manifest:', err);
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', loadIconManifest);
+</script>
+
 
 </body>
 </html>
