@@ -473,7 +473,7 @@
     'select':        'Enter choices comma-separated (e.g. Red,Green,Blue).',
     'single select': 'Enter choices comma-separated (e.g. Small,Medium,Large).',
     'multi-select':  'Enter choices comma-separated (e.g. Apple,Banana,Cherry).',
-    'progress bar':  'Enter "value:Label:Color" segments + optional "Max:N".',
+    'progress bar':  'Enter "Label:Color:Value" segments + optional "Max:N',
     'editable progress bar': 'Enter initialValue,max (e.g. 50,100).',
     'dial gauge':   'Enter min,max (e.g. 0,360).',
     'rich text':    'Quill editor; plain text is saved in CSV.',
@@ -833,27 +833,32 @@ tr.appendChild(iconTd);
   }
 
   // ── SCHEMA: LOAD, RENDER, EDIT, SAVE ─────────────────────────────────
- function loadSchemaFromData(data) {
+function loadSchemaFromData(data) {
   schemaRows = data.map(r => ({
-    id:        r.id,
-    name:      r.name,
-    label:     r.label,
-    type_IDs:  (r.type_IDs || '').split(',').map(s => s.trim()),
-    dataType:  r.dataType,
-    widget:    r.widget,
-    icon:      r.icon || '',          // read icon
-      defaultValue: r.default_value || '',
-    options:   // split the CSV cell into an array for **all** widgets
-      (r.options || '')
-        .split(',')
-        .map(s => s.trim())
-        .filter(s => s !== ''),
-    group:     r.group || '',
-    layout:    r.layout || 'full-width',
-    system:    String(r.system || '').toLowerCase() === 'true'
+    id:          r.id,
+    name:        r.name,
+    label:       r.label,
+    type_IDs:    (r.type_IDs  || '').split(',').map(s=>s.trim()),
+    dataType:    r.dataType,
+    widget:      r.widget,
+    icon:        r.icon       || '',
+    defaultValue: (r.default_value || '').split(',').map(s=>s.trim()),
+
+    // your existing options parsing
+    options:     (r.options    || '')
+                   .split(',')
+                   .map(s=>s.trim())
+                   .filter(s=>s!==''),
+    group:       r.group       || '',
+    layout:      r.layout      || 'full-width',
+    system:      String(r.system||'').toLowerCase()==='true'
   }));
   renderSchema();
 }
+console.log(schemaRows.map(r=>r.defaultValueRaw));
+window.schemaRows = schemaRows;      // ← now you can inspect it in the console
+console.log('🔍 Loaded schemaRows:', schemaRows);
+
   document.getElementById('loadSchemaBtn').addEventListener('click', () => {
     const f = document.getElementById('schemaFile').files[0];
     if (!f) return;
@@ -1537,60 +1542,68 @@ function renderPreviewForm() {
           });
           wrap.appendChild(input);
           break;
-
+if (r.widget === 'progress bar') {
+  console.log('▶️ Progress row:', {
+    options:         r.options,
+    defaultValueRaw: r.defaultValueRaw
+  });
+}
 case 'progress bar': {
-  // 1) Parse your options into segments + Max
+  // 1) Build segments from r.options as Label:Color:Value
   const segments = [];
   let maxVal = 100;
-
   r.options.forEach(opt => {
     const parts = opt.split(':').map(s => s.trim());
     if (parts[0].toLowerCase() === 'max') {
-      // e.g. ["Max", "80"]
-      maxVal = parseFloat(parts[1]) || maxVal;
+      // Max:80  → parts = ['Max','80'] or ['Max','80','']
+      maxVal = parseFloat(parts[1] || parts[2]) || maxVal;
     } else {
-      // e.g. ["30", "Used", "danger"]
-      const value = parseFloat(parts[0]) || 0;
-      const label = parts[1] || `Segment ${segments.length + 1}`;
-      const color = parts[2] || '';
-      const bsClr  = BS_COLOR_MAP[color.toLowerCase()] || '';
-      segments.push({ value, label, bsClr });
+      // Label:Color:Value
+      const label = parts[0] || `Seg ${segments.length+1}`;
+      const color = parts[1] ? BS_COLOR_MAP[parts[1].toLowerCase()] : null;
+      const value = parseFloat(parts[2]) || 0;
+      segments.push({ label, color, value });
     }
   });
 
-  // 2) Container for spinners + bar
+  // 2) Parse any defaultValue overrides
+  const defaultNums = (r.defaultValue || [])
+    .map(s => parseFloat(s))
+    .filter(n => !isNaN(n));
+
+  // 3) Build current values from defaults or segments[].value
+  const values = segments.map((seg,i) =>
+    defaultNums[i] != null ? defaultNums[i] : seg.value
+  );
+  // if there's an extra defaultValue for Max, apply it:
+  if (defaultNums.length > segments.length && !isNaN(defaultNums[segments.length])) {
+    maxVal = defaultNums[segments.length];
+  }
+
+  // 4) Container
   const container = document.createElement('div');
   container.className = 'mb-2';
 
-  // keep a live copy of segment values
-  const values = segments.map(s => s.value);
-
-  // 3) One spinner per segment, labeled by segment.label
-  segments.forEach((seg, i) => {
+  // 5) One spinner per segment
+  segments.forEach((seg,i) => {
     const grp = document.createElement('div');
     grp.className = 'input-group input-group-sm mb-1';
-
     const lbl = document.createElement('span');
     lbl.className = 'input-group-text';
-    lbl.textContent = seg.label;       // ← uses the “Used” or “Free”
+    lbl.textContent = seg.label;
     grp.appendChild(lbl);
-
     const inp = document.createElement('input');
     inp.type      = 'number';
     inp.className = 'form-control';
-    inp.value     = seg.value;
-    inp.onchange  = () => {
-      values[i] = parseFloat(inp.value) || 0;
-      redrawBar();
-    };
+    inp.value     = values[i];
+    inp.onchange  = () => { values[i] = parseFloat(inp.value) || 0; redraw(); };
     grp.appendChild(inp);
-
     container.appendChild(grp);
   });
 
-  // 4) Spinner for Max
+  // 6) Spinner for Max
   const maxGrp = document.createElement('div');
-  maxGrp.className = 'input-group input-group-sm mb-2';
+  maxGrp.className = 'input-group input-group-sm mb-1';
   const maxLbl = document.createElement('span');
   maxLbl.className = 'input-group-text';
   maxLbl.textContent = 'Max';
@@ -1599,41 +1612,48 @@ case 'progress bar': {
   maxInp.type      = 'number';
   maxInp.className = 'form-control';
   maxInp.value     = maxVal;
-  maxInp.onchange  = () => {
-    maxVal = parseFloat(maxInp.value) || 1;
-    redrawBar();
-  };
+  maxInp.onchange  = () => { maxVal = parseFloat(maxInp.value) || 1; redraw(); };
   maxGrp.appendChild(maxInp);
   container.appendChild(maxGrp);
 
-  // 5) The progress bar itself
-  const pc = document.createElement('div');
-  pc.className = 'progress';
-  container.appendChild(pc);
+  // 7) The bar itself
+  const barContainer = document.createElement('div');
+  barContainer.className = 'progress';
+  container.appendChild(barContainer);
 
-  // 6) Function to redraw bars based on current values + maxVal
-  function redrawBar() {
-    pc.innerHTML = '';
-    const total = maxVal || 1;
-    segments.forEach((seg, i) => {
-      const pct = (values[i] / total) * 100;
+  // 8) redraw() uses the up-to-date values + maxVal
+  function redraw() {
+    barContainer.innerHTML = '';
+    const denom = maxVal || 1;
+    segments.forEach((seg,i) => {
+      const pct = (values[i] / denom) * 100;
       const bar = document.createElement('div');
-      bar.className = 'progress-bar' + (seg.bsClr ? ` bg-${seg.bsClr}` : '');
-      bar.style.width = pct + '%';
-      bar.textContent = seg.label;
-      pc.appendChild(bar);
+      bar.className = seg.color
+        ? `progress-bar bg-${seg.color}`
+        : 'progress-bar';
+      bar.style.width = `${pct}%`;
+      if (seg.label) bar.textContent = seg.label;
+      barContainer.appendChild(bar);
     });
   }
+  redraw();
 
-  // initial draw
-  redrawBar();
-
-  // insert into preview
+  // 9) Append to your preview layout
   wrap.appendChild(container);
   col.appendChild(wrap);
   row.appendChild(col);
   return;
 }
+
+
+
+
+
+
+
+
+
+
 
 
 
