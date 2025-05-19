@@ -1538,27 +1538,104 @@ function renderPreviewForm() {
           wrap.appendChild(input);
           break;
 
-        case 'progress bar': {
-          let maxVal = 100;
-          const segs = [];
-          r.options.forEach(opt => {
-            const [k,v,c] = opt.split(':').map(s=>s.trim());
-            if (k.toLowerCase()==='max') maxVal = parseFloat(v) || maxVal;
-            else segs.push({ value:+k, label:v, color:c });
-          });
-          const pc = document.createElement('div');
-          pc.className='progress';
-          segs.forEach(s => {
-            const bar = document.createElement('div');
-            const pct = s.value / maxVal * 100;
-            bar.className = 'progress-bar' + (s.color?` bg-${s.color}`:'');
-            bar.style.width = pct + '%';
-            if (s.label) bar.textContent = s.label;
-            pc.appendChild(bar);
-          });
-          wrap.appendChild(pc);
-          break;
-        }
+case 'progress bar': {
+  // 1) Parse your options into segments + Max
+  const segments = [];
+  let maxVal = 100;
+
+  r.options.forEach(opt => {
+    const parts = opt.split(':').map(s => s.trim());
+    if (parts[0].toLowerCase() === 'max') {
+      // e.g. ["Max", "80"]
+      maxVal = parseFloat(parts[1]) || maxVal;
+    } else {
+      // e.g. ["30", "Used", "danger"]
+      const value = parseFloat(parts[0]) || 0;
+      const label = parts[1] || `Segment ${segments.length + 1}`;
+      const color = parts[2] || '';
+      const bsClr  = BS_COLOR_MAP[color.toLowerCase()] || '';
+      segments.push({ value, label, bsClr });
+    }
+  });
+
+  // 2) Container for spinners + bar
+  const container = document.createElement('div');
+  container.className = 'mb-2';
+
+  // keep a live copy of segment values
+  const values = segments.map(s => s.value);
+
+  // 3) One spinner per segment, labeled by segment.label
+  segments.forEach((seg, i) => {
+    const grp = document.createElement('div');
+    grp.className = 'input-group input-group-sm mb-1';
+
+    const lbl = document.createElement('span');
+    lbl.className = 'input-group-text';
+    lbl.textContent = seg.label;       // ← uses the “Used” or “Free”
+    grp.appendChild(lbl);
+
+    const inp = document.createElement('input');
+    inp.type      = 'number';
+    inp.className = 'form-control';
+    inp.value     = seg.value;
+    inp.onchange  = () => {
+      values[i] = parseFloat(inp.value) || 0;
+      redrawBar();
+    };
+    grp.appendChild(inp);
+
+    container.appendChild(grp);
+  });
+
+  // 4) Spinner for Max
+  const maxGrp = document.createElement('div');
+  maxGrp.className = 'input-group input-group-sm mb-2';
+  const maxLbl = document.createElement('span');
+  maxLbl.className = 'input-group-text';
+  maxLbl.textContent = 'Max';
+  maxGrp.appendChild(maxLbl);
+  const maxInp = document.createElement('input');
+  maxInp.type      = 'number';
+  maxInp.className = 'form-control';
+  maxInp.value     = maxVal;
+  maxInp.onchange  = () => {
+    maxVal = parseFloat(maxInp.value) || 1;
+    redrawBar();
+  };
+  maxGrp.appendChild(maxInp);
+  container.appendChild(maxGrp);
+
+  // 5) The progress bar itself
+  const pc = document.createElement('div');
+  pc.className = 'progress';
+  container.appendChild(pc);
+
+  // 6) Function to redraw bars based on current values + maxVal
+  function redrawBar() {
+    pc.innerHTML = '';
+    const total = maxVal || 1;
+    segments.forEach((seg, i) => {
+      const pct = (values[i] / total) * 100;
+      const bar = document.createElement('div');
+      bar.className = 'progress-bar' + (seg.bsClr ? ` bg-${seg.bsClr}` : '');
+      bar.style.width = pct + '%';
+      bar.textContent = seg.label;
+      pc.appendChild(bar);
+    });
+  }
+
+  // initial draw
+  redrawBar();
+
+  // insert into preview
+  wrap.appendChild(container);
+  col.appendChild(wrap);
+  row.appendChild(col);
+  return;
+}
+
+
 
         case 'editable progress bar':
           input = document.createElement('input');
