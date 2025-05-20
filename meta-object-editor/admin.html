@@ -867,10 +867,26 @@ function loadSchemaFromData(data) {
     }});
   });
 function renderSchema() {
+  schemaRows = schemaRows.filter(r => r.id && r.widget);
+
   const tbody = document.getElementById('schemaBody');
+   console.log('🔄 renderSchema start — schemaRows.length =', schemaRows.length);
+  console.log('🔄 existing <tr> count before clear =', tbody.children.length);
+   if (!tbody) throw new Error("schemaBody <tbody> not found");
+  console.log("  got tbody, clearing…");
+  console.log(' ➡️ schemaRows summary:');
+schemaRows.forEach((r,i) => {
+  console.log(
+    i,
+    { id: r.id, dataType: r.dataType, widget: r.widget }
+  );
+});
+
   tbody.innerHTML = '';
 
   schemaRows.forEach((r, i) => {
+      console.log(`🔸 rendering schemaRows[${i}] → id=${r.id}, widget=${r.widget}`);
+
     const tr = document.createElement('tr');
     const isSystem = Boolean(r.system);
     // ───── ID ─────────────────────────────────────
@@ -1231,7 +1247,21 @@ optTd.appendChild(builder);
 
     tbody.appendChild(tr);
   });
+console.log('🔄 renderSchema end — new <tr> count =', tbody.children.length);
 }
+// Wrap renderSchema to catch any errors
+(function(){
+  const orig = renderSchema;
+  window.renderSchema = function(...args) {
+    console.log("🔄 renderSchema called — schemaRows.length =", schemaRows.length);
+    try {
+      return orig.apply(this, args);
+    } catch (err) {
+      console.error("💥 renderSchema error:", err);
+      throw err;
+    }
+  };
+})();
 
 
   document.getElementById('downloadSchemaBtn').addEventListener('click', () => {
@@ -1254,16 +1284,31 @@ optTd.appendChild(builder);
       'dataType','widget','icon','default_value','options','group','layout','system'
     ]);
   });
-  document.getElementById('addSchemaBtn').addEventListener('click', () => {
+
+document.getElementById('addSchemaBtn').addEventListener('click', () => {
+  console.log('➕ [addSchemaBtn] before push, schemaRows.length =', schemaRows.length);
+  try {
     const maxId = schemaRows.reduce((m,r)=>Math.max(m,parseInt(r.id)||0),0);
-    schemaRows.push({
+    const newRow = {
       id: String(maxId+1),
       name:'', label:'', type_IDs:[], dataType:dataTypeOptions[0],
       widget: widgetsByDataType[dataTypeOptions[0]][0],
       options:[], group:'', layout:'full-width', system:false
-    });
+    };
+    console.log('➕ [addSchemaBtn] pushing newRow:', newRow);
+    schemaRows.push(newRow);
+    console.log('➕ [addSchemaBtn] after push, schemaRows.length =', schemaRows.length);
+
+    console.log('🔄 About to call renderSchema()');
     renderSchema();
-  });
+    console.log('🔄 renderSchema() returned');
+  }
+  catch (err) {
+    console.error('⚠️ error in addSchemaBtn handler:', err);
+  }
+});
+
+
 
   // ── TAB SWITCHING ────────────────────────────────────────────────────
   document.querySelectorAll('.tab').forEach(tab => {
