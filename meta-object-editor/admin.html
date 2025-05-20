@@ -1052,7 +1052,7 @@ function renderTokens() {
   );
   const opOptions = ['+','-','*','/'];
 
-  // 2) Helpers to build selects
+  // 2) Helpers
   function createFieldSelect(idx) {
     const sel = document.createElement('select');
     sel.className = 'form-select form-select-sm';
@@ -1062,27 +1062,52 @@ function renderTokens() {
       if (r.options[idx] === f.id) opt.selected = true;
       sel.append(opt);
     });
-    sel.onchange = e => { r.options[idx] = e.target.value; };
+    sel.onchange = e => { r.options[idx] = e.target.value; evaluateAllFormulas(); };
     return sel;
   }
 
   function createOpSelect(idx) {
     const sel = document.createElement('select');
     sel.className = 'form-select form-select-sm';
-    sel.id = `input-${r.id}-${idx}`;
+    sel.id = `op-${r.id}-${idx}`;
     opOptions.forEach(sym => {
       const opt = new Option(sym, sym);
       if (r.options[idx] === sym) opt.selected = true;
       sel.append(opt);
     });
-    sel.onchange = e => { r.options[idx] = e.target.value; };
+    sel.onchange = e => { r.options[idx] = e.target.value; evaluateAllFormulas(); };
     return sel;
   }
 
-  // 3) How many extra [op,field] pairs beyond the first row?
+  // ← New helper: either a number‐input or a field‐select
+   function createOperandControl(idx) {
+     const tok = r.options[idx] || '';
+   // 1) if this matches a real field ID, show the select
+   if ( fieldOptions.some(f => f.id === tok) ) {
+     return createFieldSelect(idx);
+   }
+     // 2) otherwise, numeric literal?
+     if (/^[\d.]+$/.test(tok)) {
+       const inp = document.createElement('input');
+       inp.type      = 'number';
+       inp.className = 'form-control form-control-sm';
+       inp.value     = tok;
+       inp.onchange  = e => {
+         r.options[idx] = e.target.value.trim();
+         evaluateAllFormulas();
+       };
+       return inp;
+     }
+
+    // anything else (e.g. blank, or bad ID) => dropdown
+    return createFieldSelect(idx);
+   }
+
+
+  // 3) How many extra [op,operand] pairs beyond the first row?
   const extraPairs = Math.max(0, Math.floor((r.options.length - 3) / 2));
 
-  // ─── Row 1: Attribute | Operator | Attribute ─────────────
+  // ─── Row 1: operand | operator | operand ─────────────
   {
     const row = document.createElement('div');
     row.className = 'd-flex gap-2 mb-2';
@@ -1092,7 +1117,7 @@ function renderTokens() {
       if (idx < r.options.length) {
         cell.appendChild(
           idx % 2 === 0
-            ? createFieldSelect(idx)
+            ? createOperandControl(idx)  // ← use operand control here
             : createOpSelect(idx)
         );
       }
@@ -1101,9 +1126,9 @@ function renderTokens() {
     builder.appendChild(row);
   }
 
-  // ─── Rows 2…N: each extra [Operator | Attribute] ─────────
+  // ─── Rows 2…N: each extra [Operator | Operand] ─────────
   for (let p = 0; p < extraPairs; p++) {
-    const base = 3 + p*2;  // operator at base, field at base+1
+    const base = 3 + p*2;  // operator at base, operand at base+1
     const row = document.createElement('div');
     row.className = 'd-flex gap-2 mb-2';
 
@@ -1115,15 +1140,15 @@ function renderTokens() {
     }
     row.appendChild(opCell);
 
-    // Field cell
-    const fldCell = document.createElement('div');
-    fldCell.className = 'flex-fill';
+    // Operand cell
+    const opdCell = document.createElement('div');
+    opdCell.className = 'flex-fill';
     if (r.options[base+1] !== undefined) {
-      fldCell.appendChild(createFieldSelect(base+1));
+      opdCell.appendChild(createOperandControl(base+1));  // ← also here
     }
-    row.appendChild(fldCell);
+    row.appendChild(opdCell);
 
-    // Placeholder cell (for uniform 3-column layout)
+    // Placeholder cell (for uniform 3-col layout)
     const placeholder = document.createElement('div');
     placeholder.className = 'flex-fill';
     row.appendChild(placeholder);
@@ -1131,7 +1156,7 @@ function renderTokens() {
     builder.appendChild(row);
   }
 
-  // ─── Final “＋ Add Step” row ──────────────────────────────
+  // ─── Final “＋ Add Step” + “＋ Add Constant” row ───────────
   {
     const row = document.createElement('div');
     row.className = 'd-flex gap-2 mb-2';
@@ -1139,26 +1164,43 @@ function renderTokens() {
     row.appendChild(document.createElement('div'));
     row.appendChild(document.createElement('div'));
 
-    // action cell
-    const actionCell = document.createElement('div');
-    actionCell.className = 'flex-fill text-end';
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'btn btn-sm btn-outline-primary';
-    btn.textContent = '＋ Add Step';
-    btn.onclick = () => {
-      // append default [+, firstNumericField]
+    // Add Step
+    const stepCell = document.createElement('div');
+    stepCell.className = 'flex-fill text-end';
+    const stepBtn = document.createElement('button');
+    stepBtn.type         = 'button';
+    stepBtn.className    = 'btn btn-sm btn-outline-primary me-2';
+    stepBtn.textContent  = '＋ Add Step';
+    stepBtn.onclick      = () => {
       r.options.push('+');
       const nf = fieldOptions[0];
       if (nf) r.options.push(nf.id);
       renderTokens();
     };
-    actionCell.appendChild(btn);
-    row.appendChild(actionCell);
+    stepCell.appendChild(stepBtn);
 
+    // Add Constant
+    const constBtn = document.createElement('button');
+    constBtn.type        = 'button';
+    constBtn.className   = 'btn btn-sm btn-outline-secondary';
+    constBtn.textContent = '＋ Add Constant';
+    constBtn.onclick     = () => {
+      r.options.push('+','0');  // operator + blank literal
+      renderTokens();
+      // focus new literal
+      setTimeout(() => {
+        const idx = r.options.length - 1;
+        const inp = document.getElementById(`input-${r.id}-${idx}`);
+        inp?.focus();
+      }, 0);
+    };
+    stepCell.appendChild(constBtn);
+
+    row.appendChild(stepCell);
     builder.appendChild(row);
   }
 }
+
 
 // …after defining renderTokens(), immediately call it:
 renderTokens();
