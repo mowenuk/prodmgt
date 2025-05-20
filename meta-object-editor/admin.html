@@ -1456,7 +1456,65 @@ function renderPreviewForm() {
       let input;
 
       switch (r.widget) {
-        case 'text input':
+
+// inside your switch(r.widget) in renderPreviewForm():
+    case 'text input': {
+      // r.options will be something like ["Before:£","Amount GBP"]
+      const cfg = r.options;
+      // flatten defaultValue array
+      const dvArr = Array.isArray(r.defaultValue) ? r.defaultValue : [r.defaultValue];
+      const dv    = dvArr[0] || '';
+
+      // detect Before:/After:
+      let beforeSym = '', afterSym = '', placeholder = '';
+      if (cfg.length === 2 && /^Before:/i.test(cfg[0])) {
+        beforeSym  = cfg[0].split(':')[1].trim();
+        placeholder = cfg[1];
+      } else if (cfg.length === 2 && /^After:/i.test(cfg[0])) {
+        afterSym   = cfg[0].split(':')[1].trim();
+        placeholder = cfg[1];
+      }
+
+      if (beforeSym || afterSym) {
+        // build an input-group with addon(s)
+        const grp = document.createElement('div');
+        grp.className = 'input-group';
+
+        if (beforeSym) {
+          const span = document.createElement('span');
+          span.className = 'input-group-text';
+          span.textContent = beforeSym;
+          grp.appendChild(span);
+        }
+
+        const inp = document.createElement('input');
+        inp.type        = 'text';
+        inp.className   = 'form-control';
+        if (dv) inp.value       = dv;
+        else    inp.placeholder = placeholder;
+        grp.appendChild(inp);
+
+        if (afterSym) {
+          const span = document.createElement('span');
+          span.className = 'input-group-text';
+          span.textContent = afterSym;
+          grp.appendChild(span);
+        }
+
+        wrap.appendChild(grp);
+      } else {
+        // plain text input
+        const inp = document.createElement('input');
+        inp.type      = 'text';
+        inp.className = 'form-control';
+        if (dv) inp.value = dv;
+        wrap.appendChild(inp);
+      }
+      break;
+    }
+
+
+
         case 'search input':
         case 'email input':
         case 'url input':
@@ -1478,16 +1536,68 @@ function renderPreviewForm() {
           wrap.appendChild(input);
           break;
 
-        case 'spinner':
-          input = document.createElement('input');
-          input.type = 'number';
-          input.className = 'form-control';
-          input.value     = val;
-          wrap.appendChild(input);
-          input.id = `input-${r.id}`;
-          input.addEventListener('input',  evaluateAllFormulas);
-          
-          break;
+case 'spinner': {
+  // r.options might be [ "Before:£", "Amount GBP" ] or empty/default
+  const cfg = r.options || [];
+  const dvArr = Array.isArray(r.defaultValue) ? r.defaultValue : [r.defaultValue];
+  const dv    = dvArr[0] != null && dvArr[0] !== '' ? dvArr[0] : '';
+
+  // parse Before:/After:
+  let beforeSym = '', afterSym = '', placeholder = '';
+  if (cfg.length === 2 && /^Before:/i.test(cfg[0])) {
+    beforeSym  = cfg[0].split(':')[1].trim();
+    placeholder = cfg[1];
+  } else if (cfg.length === 2 && /^After:/i.test(cfg[0])) {
+    afterSym   = cfg[0].split(':')[1].trim();
+    placeholder = cfg[1];
+  }
+
+  // helper to wire formula-listeners
+  function wire(inp) {
+    inp.id = `input-${r.id}`;
+    inp.addEventListener('input',  evaluateAllFormulas);
+    inp.addEventListener('change', evaluateAllFormulas);
+  }
+
+  if (beforeSym || afterSym) {
+    const grp = document.createElement('div');
+    grp.className = 'input-group';
+
+    if (beforeSym) {
+      const span = document.createElement('span');
+      span.className = 'input-group-text';
+      span.textContent = beforeSym;
+      grp.appendChild(span);
+    }
+
+    const inp = document.createElement('input');
+    inp.type        = 'number';
+    inp.className   = 'form-control';
+    if (dv) inp.value       = dv;
+    else    inp.placeholder = placeholder;
+    grp.appendChild(inp);
+    wire(inp);
+
+    if (afterSym) {
+      const span = document.createElement('span');
+      span.className = 'input-group-text';
+      span.textContent = afterSym;
+      grp.appendChild(span);
+    }
+
+    wrap.appendChild(grp);
+  } else {
+    // plain spinner
+    const inp = document.createElement('input');
+    inp.type      = 'number';
+    inp.className = 'form-control';
+    if (dv) inp.value = dv;
+    wrap.appendChild(inp);
+    wire(inp);
+  }
+  break;
+}
+
 
         case 'stepper': {
           const grp = document.createElement('div');
