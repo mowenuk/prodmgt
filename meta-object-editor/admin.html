@@ -380,6 +380,7 @@
 
 <!-- Initialize the example gauge -->
 <script>
+  const gaugeInstances = {};
   // Ensure Raphael & JustGage are already loaded
   document.addEventListener('DOMContentLoaded', () => {
     try {
@@ -453,6 +454,7 @@
 
   var schemaRows  = [];
 
+
   const dataTypeOptions = ['short text','long text','integer','date','percentage','boolean', 'formula'];
 
   const widgetsByDataType = {
@@ -516,6 +518,7 @@ const widgetOptionExamples = {
   'single choice':         'High:1, Medium:2, Low:3',
   'single choice color':   'Green:20, Blue:40, Yellow:60, Red:80'
 };
+
 
 
   // ── CSV SAVE HELPER ─────────────────────────────────────────────────
@@ -1361,7 +1364,10 @@ document.getElementById('addSchemaBtn').addEventListener('click', () => {
       if (tab.dataset.tab==='typesTab') renderTypes();
       if (tab.dataset.tab==='relsTab')  { populateRelsFilter(); renderRels(); }
       if (tab.dataset.tab==='schemaTab') renderSchema();
-      if (tab.dataset.tab==='previewTab') { updatePreviewTypeSelect(); renderPreviewForm(); }
+    //  if (tab.dataset.tab==='previewTab') { updatePreviewTypeSelect(); renderPreviewForm(); }
+       if (tab.dataset.tab === 'previewTab') {
+           updatePreviewTypeSelect();}
+
     });
   });
 
@@ -1437,6 +1443,10 @@ function renderPreviewForm() {
 
     // c) Each field
     fields.forEach(r => {
+
+        // 🐞 debug: see every widget being rendered
+console.log(`▶️ renderPreviewForm: widget = "${r.widget}", field id = ${r.id}`);
+
       const col = document.createElement('div');
       // layout
       const layoutKey = onlyOne ? 'full-width' : r.layout;
@@ -1469,17 +1479,35 @@ function renderPreviewForm() {
       }
 
       // Formula editor (read-only output)
-      if (r.widget === 'formula editor') {
-        const help = document.createElement('div');
-        help.className = 'form-text text-muted';
-        help.textContent = 'Formula: ' +
-          r.options.map(tok =>
-            ['+','-','*','/'].includes(tok)
-              ? tok
-              : (schemaRows.find(f=>f.id===tok)?.label || tok)
-          ).join(' ');
-        wrap.appendChild(help);
 
+      if (r.widget === 'formula editor') {
+        // 1) Create a little “?” button to trigger the popover
+        const helpBtn = document.createElement('button');
+        helpBtn.type = 'button';
+helpBtn.className = 'btn btn-outline-secondary btn-sm p-0 ms-2';
+helpBtn.style.fontSize    = '0.7rem';
+helpBtn.style.lineHeight  = '1';
+helpBtn.style.width       = '1.2rem';
+helpBtn.style.height      = '1.2rem';
+        helpBtn.innerHTML = '?';    
+        helpBtn.setAttribute('data-bs-toggle', 'popover');
+        helpBtn.setAttribute('data-bs-trigger', 'hover focus');
+        helpBtn.setAttribute('data-bs-placement', 'right');
+        helpBtn.setAttribute('title', 'Formula Help');
+        helpBtn.setAttribute(
+          'data-bs-content',
+          'Formula: ' +
+            r.options
+              .map(tok =>
+                ['+','-','*','/'].includes(tok)
+                  ? tok
+                  : (schemaRows.find(f => f.id === tok)?.label || tok)
+              )
+              .join(' ')
+        );
+        wrap.appendChild(helpBtn);
+
+        // 2) The readonly output div
         const out = document.createElement('div');
         out.id = `formula-${r.id}`;
         out.className = 'form-control-plaintext';
@@ -1487,8 +1515,11 @@ function renderPreviewForm() {
 
         col.appendChild(wrap);
         row.appendChild(col);
+
+        // 3) Return early to skip the rest of the field rendering
         return;
       }
+
 
       // Generic defaultValue for primitives
       const val = r.defaultValue != null && r.defaultValue !== ''
@@ -1498,6 +1529,8 @@ function renderPreviewForm() {
       let input;
 
       switch (r.widget) {
+
+
 
 // inside your switch(r.widget) in renderPreviewForm():
     case 'text input': {
@@ -1851,26 +1884,61 @@ case 'spinner': {
           if (r.options[0]) input.value = (r.defaultValue || r.options[0]);
           if (r.options[1]) input.max   = r.options[1];
           wrap.appendChild(input);
+          // Add the next two lines to any case statement to make them available to the function editor
+          input.id = `input-${r.id}`;
+          input.addEventListener('input',  evaluateAllFormulas);
           break;
 
-        case 'dial gauge': {
-          const gd = document.createElement('div');
-          gd.id = `gauge-${r.id}`;
-          gd.style.width='200px'; gd.style.height='160px';
-          wrap.appendChild(gd);
-          setTimeout(() => {
-            new JustGage({
-              id:    gd.id,
-              value:  r.defaultValue
-                     ? +r.defaultValue
-                     : ((+r.options[0]||0) + (+r.options[1]||100)) / 2,
-              min:   +r.options[0] || 0,
-              max:   +r.options[1] || 100,
-              title: '', label:'', pointer:true, gaugeWidthScale:0.6
+          case 'dial gauge': {
+            // 1) create the slider control
+            const slider = document.createElement('input');
+            slider.type      = 'range';
+            slider.className = 'form-range mb-2';
+            slider.min       = r.options[0] || 0;
+            slider.max       = r.options[1] || 100;
+            // initial value: defaultValue or midpoint
+            slider.value     = r.defaultValue
+                              ? +r.defaultValue
+                              : ((+slider.min + +slider.max) / 2);
+
+            // give it an ID so resolveToken can see it if you ever want
+            slider.id = `input-${r.id}`;
+
+            // wire it up
+            slider.addEventListener('input', () => {
+              const v = +slider.value;
+              gaugeInstances[r.id].refresh(v);
+              evaluateAllFormulas();
             });
-          },0);
-          break;
-        }
+
+            wrap.appendChild(slider);
+
+            // 2) render the gauge itself and stash the instance
+            const gd = document.createElement('div');
+            gd.id = `gauge-${r.id}`;
+            gd.style.width  = '200px';
+            gd.style.height = '160px';
+
+
+            wrap.appendChild(gd);
+            col.appendChild(wrap);
+            row.appendChild(col);
+
+            setTimeout(() => {
+              gaugeInstances[r.id] = new JustGage({
+                id:              gd.id,
+                value:           +slider.value,
+                min:             +slider.min,
+                max:             +slider.max,
+                title:           '',
+                label:           '',
+                pointer:         true,
+                gaugeWidthScale: 0.6
+              });
+            }, 0);
+            break;
+          }
+
 
         case 'rich text': {
           const editorDiv = document.createElement('div');
@@ -1983,6 +2051,14 @@ case 'spinner': {
 
 
   evaluateAllFormulas();
+// at the very end of renderPreviewForm()
+const popoverTriggerList = Array.from(
+  document.querySelectorAll('[data-bs-toggle="popover"]')
+);
+popoverTriggerList.forEach(el => {
+  bootstrap.Popover.getOrCreateInstance(el);
+});
+
 }
 
 
@@ -2077,14 +2153,14 @@ case 'spinner': {
 <script>
   // ─── Convert a token (literal or field) into a number ─────────────
 function resolveToken(tok) {
-  // 1) Does this token match one of our field IDs?
+  // 1) If it matches one of our schema fields, use that
   const field = schemaRows.find(f => f.id === tok);
   if (field) {
     const node = document.getElementById(`input-${tok}`);
     const raw  = node?.value;
     if (raw == null) return 0;
 
-    // date → days since epoch
+    // 1a) dates → days since epoch
     if (field.dataType.startsWith('date')) {
       const dt = new Date(raw);
       return isNaN(dt)
@@ -2092,11 +2168,16 @@ function resolveToken(tok) {
         : dt.getTime() / (1000 * 60 * 60 * 24);
     }
 
-    // otherwise parse as float
+    // 1b) dial gauge (range slider) → read its value
+    if (field.widget === 'dial gauge') {
+      return parseFloat(raw) || 0;
+    }
+
+    // 1c) everything else (spinners, text-inputs, etc.)
     return parseFloat(raw) || 0;
   }
 
-  // 2) Otherwise is it a numeric literal?
+  // 2) Otherwise if it’s a numeric literal, parse it
   if (/^-?\d+(\.\d+)?$/.test(tok)) {
     return parseFloat(tok);
   }
@@ -2105,13 +2186,10 @@ function resolveToken(tok) {
   return 0;
 }
 
+
   // ─── Evaluate every formula‐editor field ──────────────────────────
 function evaluateAllFormulas() {
-    console.log(
-    '▶️ evaluateAllFormulas',
-    Array.from(arguments),
-    new Date().toISOString()
-  );
+
 
   schemaRows
     .filter(r => r.widget === 'formula editor')
