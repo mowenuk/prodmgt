@@ -838,6 +838,12 @@ tr.appendChild(iconTd);
 
   // ── SCHEMA: LOAD, RENDER, EDIT, SAVE ─────────────────────────────────
 function loadSchemaFromData(data) {
+
+  const ids = schemaRows.map(r => r.id);
+const dupes = ids.filter((id, i) => ids.indexOf(id) !== i);
+if (dupes.length) {
+  console.warn('⚠️ Duplicate schema IDs detected:', [...new Set(dupes)]);
+}
   schemaRows = data.map(r => ({
     id:          r.id,
     name:        r.name,
@@ -858,6 +864,7 @@ function loadSchemaFromData(data) {
     system:      String(r.system||'').toLowerCase()==='true'
   }));
   window.schemaRows = schemaRows;  
+
   renderSchema();
 }
 
@@ -1484,7 +1491,7 @@ console.log(`▶️ renderPreviewForm: widget = "${r.widget}", field id = ${r.id
         // 1) Create a little “?” button to trigger the popover
         const helpBtn = document.createElement('button');
         helpBtn.type = 'button';
-        helpBtn.className = 'btn btn-sm btn-outline-secondary formula-help-btn ms-1';
+        helpBtn.className = 'btn btn-sm formula-help-btn ms-1';
 
         helpBtn.innerHTML = '<i class="bi bi-question-circle"></i>';  
         helpBtn.setAttribute('data-bs-toggle', 'popover');
