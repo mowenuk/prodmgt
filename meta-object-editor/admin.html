@@ -1484,12 +1484,9 @@ console.log(`▶️ renderPreviewForm: widget = "${r.widget}", field id = ${r.id
         // 1) Create a little “?” button to trigger the popover
         const helpBtn = document.createElement('button');
         helpBtn.type = 'button';
-helpBtn.className = 'btn btn-outline-secondary btn-sm p-0 ms-2';
-helpBtn.style.fontSize    = '0.7rem';
-helpBtn.style.lineHeight  = '1';
-helpBtn.style.width       = '1.2rem';
-helpBtn.style.height      = '1.2rem';
-        helpBtn.innerHTML = '?';    
+        helpBtn.className = 'btn btn-sm btn-outline-secondary formula-help-btn ms-1';
+
+        helpBtn.innerHTML = '<i class="bi bi-question-circle"></i>';  
         helpBtn.setAttribute('data-bs-toggle', 'popover');
         helpBtn.setAttribute('data-bs-trigger', 'hover focus');
         helpBtn.setAttribute('data-bs-placement', 'right');
@@ -1778,102 +1775,97 @@ case 'spinner': {
           });
           wrap.appendChild(input);
           break;
-        case 'progress bar': {
-          // 1) Build segments from r.options as Label:Color:Value
-          const segments = [];
-          let maxVal = 100;
-          r.options.forEach(opt => {
-            const parts = opt.split(':').map(s => s.trim());
-            if (parts[0].toLowerCase() === 'max') {
-              // Max:80  → parts = ['Max','80'] or ['Max','80','']
-              maxVal = parseFloat(parts[1] || parts[2]) || maxVal;
-            } else {
-              // Label:Color:Value
-              const label = parts[0] || `Seg ${segments.length+1}`;
-              const color = parts[1] ? BS_COLOR_MAP[parts[1].toLowerCase()] : null;
-              const value = parseFloat(parts[2]) || 0;
-              segments.push({ label, color, value });
-            }
-          });
+case 'progress bar': {
+  // 1) Parse segments & Max
+  const segments = [];
+  let maxVal = 100;
+  r.options.forEach(opt => {
+    const parts = opt.split(':').map(s=>s.trim());
+    if (parts[0].toLowerCase()==='max') {
+      maxVal = parseFloat(parts[1]||parts[2])||maxVal;
+    } else {
+      segments.push({
+        label: parts[0],
+        color: BS_COLOR_MAP[parts[1]?.toLowerCase()] || null,
+        value: parseFloat(parts[2])||0
+      });
+    }
+  });
 
-          // 2) Parse any defaultValue overrides
-          const defaultNums = (r.defaultValue || [])
-            .map(s => parseFloat(s))
-            .filter(n => !isNaN(n));
+  // 2) Apply defaultValue overrides
+  const defs = (r.defaultValue||[]).map(s=>parseFloat(s)).filter(n=>!isNaN(n));
+  const values = segments.map((s,i)=> defs[i]!=null ? defs[i] : s.value);
+  if (defs.length > segments.length && !isNaN(defs[segments.length])) {
+    maxVal = defs[segments.length];
+  }
 
-          // 3) Build current values from defaults or segments[].value
-          const values = segments.map((seg,i) =>
-            defaultNums[i] != null ? defaultNums[i] : seg.value
-          );
-          // if there's an extra defaultValue for Max, apply it:
-          if (defaultNums.length > segments.length && !isNaN(defaultNums[segments.length])) {
-            maxVal = defaultNums[segments.length];
-          }
+  // 3) Build a single flex‐row of all spinners
+  const controlsRow = document.createElement('div');
+  controlsRow.className = 'd-flex mb-2';
+  controlsRow.style.gap = '0.5rem';
 
-          // 4) Container
-          const container = document.createElement('div');
-          container.className = 'mb-2';
+  segments.forEach((seg,i) => {
+    const grp = document.createElement('div');
+    grp.className = 'input-group input-group-sm';
+    const lbl = document.createElement('span');
+    lbl.className = 'input-group-text';
+    lbl.textContent = seg.label;
+    const inp = document.createElement('input');
+    inp.type      = 'number';
+    inp.className = 'form-control';
+    inp.value     = values[i];
+    inp.onchange  = () => { values[i] = parseFloat(inp.value)||0; redraw(); };
+    grp.append(lbl, inp);
+    controlsRow.appendChild(grp);
+  });
 
-          // 5) One spinner per segment
-          segments.forEach((seg,i) => {
-            const grp = document.createElement('div');
-            grp.className = 'input-group input-group-sm mb-1';
-            const lbl = document.createElement('span');
-            lbl.className = 'input-group-text';
-            lbl.textContent = seg.label;
-            grp.appendChild(lbl);
-            const inp = document.createElement('input');
-            inp.type      = 'number';
-            inp.className = 'form-control';
-            inp.value     = values[i];
-            inp.onchange  = () => { values[i] = parseFloat(inp.value) || 0; redraw(); };
-            grp.appendChild(inp);
-            container.appendChild(grp);
-          });
+  // Max spinner
+  const maxGrp = document.createElement('div');
+  maxGrp.className = 'input-group input-group-sm';
+  const maxLbl = document.createElement('span');
+  maxLbl.className = 'input-group-text';
+  maxLbl.textContent = 'Max';
+  const maxInp = document.createElement('input');
+  maxInp.type      = 'number';
+  maxInp.className = 'form-control';
+  maxInp.value     = maxVal;
+  maxInp.onchange  = () => { maxVal = parseFloat(maxInp.value)||1; redraw(); };
+  maxGrp.append(maxLbl, maxInp);
+  controlsRow.appendChild(maxGrp);
 
-          // 6) Spinner for Max
-          const maxGrp = document.createElement('div');
-          maxGrp.className = 'input-group input-group-sm mb-1';
-          const maxLbl = document.createElement('span');
-          maxLbl.className = 'input-group-text';
-          maxLbl.textContent = 'Max';
-          maxGrp.appendChild(maxLbl);
-          const maxInp = document.createElement('input');
-          maxInp.type      = 'number';
-          maxInp.className = 'form-control';
-          maxInp.value     = maxVal;
-          maxInp.onchange  = () => { maxVal = parseFloat(maxInp.value) || 1; redraw(); };
-          maxGrp.appendChild(maxInp);
-          container.appendChild(maxGrp);
+  // 4) Wrap spinners + bar in an inline‐block so bar width matches
+const wrapper = document.createElement('div');
+wrapper.style.display = 'block';        // force on its own line
+wrapper.style.width   = '100%';         // span the full width if you like
+wrapper.classList.add('mt-1');          // small gap above
 
-          // 7) The bar itself
-          const barContainer = document.createElement('div');
-          barContainer.className = 'progress';
-          container.appendChild(barContainer);
+  // 5) Create the progress bar container
+  const barContainer = document.createElement('div');
+  barContainer.className = 'progress';
+  wrapper.append(controlsRow, barContainer);
 
-          // 8) redraw() uses the up-to-date values + maxVal
-          function redraw() {
-            barContainer.innerHTML = '';
-            const denom = maxVal || 1;
-            segments.forEach((seg,i) => {
-              const pct = (values[i] / denom) * 100;
-              const bar = document.createElement('div');
-              bar.className = seg.color
-                ? `progress-bar bg-${seg.color}`
-                : 'progress-bar';
-              bar.style.width = `${pct}%`;
-              if (seg.label) bar.textContent = seg.label;
-              barContainer.appendChild(bar);
-            });
-          }
-          redraw();
+  // redraw function
+  function redraw() {
+    barContainer.innerHTML = '';
+    const denom = maxVal || 1;
+    segments.forEach((seg,i) => {
+      const pct = (values[i] / denom) * 100;
+      const bar = document.createElement('div');
+      bar.className = seg.color ? `progress-bar bg-${seg.color}` : 'progress-bar';
+      bar.style.width = pct + '%';
+      if (seg.label) bar.textContent = seg.label;
+      barContainer.appendChild(bar);
+    });
+  }
+  redraw();
 
-          // 9) Append to your preview layout
-          wrap.appendChild(container);
-          col.appendChild(wrap);
-          row.appendChild(col);
-          return;
-        }
+  // 6) **Attach into your preview layout** (this was the missing bit!)
+  wrap.appendChild(wrapper);
+  col.appendChild(wrap);
+  row.appendChild(col);
+  return;
+}
+
 
 
 
@@ -2049,15 +2041,35 @@ case 'spinner': {
   form.appendChild(accordion);
 
 
+// …after you've appended the whole form…
+Array.from(document.querySelectorAll('.formula-help-btn'))
+  .forEach(el => bootstrap.Popover.getOrCreateInstance(el, {}));
 
-  evaluateAllFormulas();
-// at the very end of renderPreviewForm()
-const popoverTriggerList = Array.from(
-  document.querySelectorAll('[data-bs-toggle="popover"]')
-);
 popoverTriggerList.forEach(el => {
   bootstrap.Popover.getOrCreateInstance(el);
 });
+
+// give each non-formula input its ID (if you ever recreate it)
+schemaRows.forEach(r => {
+  const inp = document.getElementById(`input-${r.id}`);
+  if (inp) inp.id = `input-${r.id}`;
+});
+
+// now wire up your change/input handlers
+schemaRows
+  .filter(r => r.widget !== 'formula editor')
+  .forEach(r => {
+    const node = document.getElementById(`input-${r.id}`);
+    if (!node) return;
+    node.removeEventListener('input',  evaluateAllFormulas);
+    node.removeEventListener('change', evaluateAllFormulas);
+    node.addEventListener('input',  evaluateAllFormulas);
+    node.addEventListener('change', evaluateAllFormulas);
+  });
+
+// finally, run one pass so everything shows correctly
+evaluateAllFormulas();
+
 
 }
 
