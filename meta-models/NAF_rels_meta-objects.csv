@@ -1,5 +1,7 @@
-sourceMetaObjectID,targetMetaObjectID,relationshipType,description
-StrategicObjective,Capability,enables,Strategic Objective enables Capability
-Capability,OperationalActivity,performedBy,Capability is performed by Operational Activity
-OperationalActivity,System,realizedBy,Operational Activity is realized by System
-System,InformationElement,uses,System uses Information Element
+id,name,reverseName,label,fromMetaObjectID,toMetaObjectID,system
+301,supports,is supported by,,101,102,True
+302,uses,is used by,,103,104,True
+303,performs,is performed by,,107,105,True
+304,exchanges,is exchanged by,,105,106,True
+305,implements,is implemented by,,102,108,True
+306,conforms to,is standard for,,108,109,True

@@ -1,11 +1,9 @@
-metaObjectID,propertyID,name,dataType,widget,options
-StrategicObjective,name,Name,short text,text input,
-Capability,name,Name,short text,text input,
-OperationalActivity,name,Name,short text,text input,
-System,name,Name,short text,text input,
-InformationElement,name,Name,short text,text input,
-StrategicObjective,description,Description,long text,textarea,
-Capability,description,Description,long text,textarea,
-OperationalActivity,description,Description,long text,textarea,
-System,description,Description,long text,textarea,
-InformationElement,description,Description,long text,textarea,
+id,name,label,type_IDs,dataType,widget,icon,options,default_value,group,layout,system
+201,capability_id,Capability ID,101,short text,text input,hash,,,Identity,one-third,True
+202,goal,Goal,101,long text,textarea,bullseye,,,Definition,full-width,True
+203,function_id,Function ID,102,short text,text input,gear,,,Identity,one-third,True
+204,performance,Performance,102,integer,spinner,speedometer,Before:%,100,Metrics,half-right,False
+205,service_id,Service ID,103,short text,text input,cloud,,,Identity,one-third,True
+206,sla,SLA Level,103,short text,select,award,"Gold,Silver,Bronze",Silver,Definition,half-left,False
+207,system_type,System Type,108,short text,select,cpu,"Hardware,Software,Hybrid",Hybrid,Definition,half-left,True
+208,uptime,Uptime,108,percentage,progress bar,bar-chart,"99:Excellent:success,95:Good:warning,90:Fair:danger",99,Metrics,half-right,False

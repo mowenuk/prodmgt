@@ -1,6 +1,10 @@
-metaObjectID,name,description,icon
-StrategicObjective,Strategic Objective,A high-level goal aligning with strategic missions.,bullseye
-Capability,Capability,A high-level ability required to achieve strategic objectives.,award
-OperationalActivity,Operational Activity,A task or function performed in an operational context.,activity
-System,System,A technical system that supports capabilities.,cpu
-InformationElement,Information Element,A data artifact or construct used in operations or systems.,file-text
+id,name,description,icon,system
+101,Capability,The ability to achieve a desired effect under specified standards and conditions.,bullseye,True
+102,Function,Describes what a system must do.,gear,True
+103,Service,A unit of functionality packaged for use by other entities.,cloud-check,True
+104,Resource,A logical or physical asset used by capabilities or services.,box,True
+105,Operational Activity,Tasks or processes conducted in support of a mission.,activity,True
+106,Information Element,Information required or produced by activities.,file-earmark-text,True
+107,Organization,An entity responsible for carrying out activities.,building,True
+108,System,A set of related components that produce results.,cpu,True
+109,Standard,Rules or guidelines used to ensure consistency and quality.,check2-square,True
