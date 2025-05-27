@@ -1,0 +1,11 @@
+metaObjectID,propertyID,name,dataType,widget,options
+StrategicObjective,name,Name,short text,text input,
+Capability,name,Name,short text,text input,
+OperationalActivity,name,Name,short text,text input,
+System,name,Name,short text,text input,
+InformationElement,name,Name,short text,text input,
+StrategicObjective,description,Description,long text,textarea,
+Capability,description,Description,long text,textarea,
+OperationalActivity,description,Description,long text,textarea,
+System,description,Description,long text,textarea,
+InformationElement,description,Description,long text,textarea,

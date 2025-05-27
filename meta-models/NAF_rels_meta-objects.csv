@@ -1,0 +1,5 @@
+sourceMetaObjectID,targetMetaObjectID,relationshipType,description
+StrategicObjective,Capability,enables,Strategic Objective enables Capability
+Capability,OperationalActivity,performedBy,Capability is performed by Operational Activity
+OperationalActivity,System,realizedBy,Operational Activity is realized by System
+System,InformationElement,uses,System uses Information Element

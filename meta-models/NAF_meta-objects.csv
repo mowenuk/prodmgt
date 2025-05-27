@@ -1,0 +1,6 @@
+metaObjectID,name,description,icon
+StrategicObjective,Strategic Objective,A high-level goal aligning with strategic missions.,bullseye
+Capability,Capability,A high-level ability required to achieve strategic objectives.,award
+OperationalActivity,Operational Activity,A task or function performed in an operational context.,activity
+System,System,A technical system that supports capabilities.,cpu
+InformationElement,Information Element,A data artifact or construct used in operations or systems.,file-text
