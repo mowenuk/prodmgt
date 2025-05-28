@@ -733,57 +733,105 @@ tr.appendChild(iconTd);
     metaTypes.forEach(mt => sel.appendChild(new Option(mt.name,mt.id)));
     sel.onchange = renderRels;
   }
-  function renderRels() {
-    const fromId = document.getElementById('relsFilterSelect').value;
-    const tbody = document.getElementById('relsBody');
-    tbody.innerHTML = '';
-    metaRels.filter(r=>r.fromMetaObjectID===fromId).forEach((r,i) => {
-      const tr = document.createElement('tr');
-      // ID
-      const idTd = document.createElement('td');
-      idTd.textContent = r.id; tr.appendChild(idTd);
-      // Name
-      const nmTd = document.createElement('td');
-      const nmIn = document.createElement('input');
-      nmIn.value = r.name; nmIn.onchange = e=>r.name=e.target.value;
-      nmTd.appendChild(nmIn); tr.appendChild(nmTd);
-      // Reverse Name
-      const rvTd = document.createElement('td');
-      const rvIn = document.createElement('input');
-      rvIn.value = r.reverseName; rvIn.onchange = e=>r.reverseName=e.target.value;
-      rvTd.appendChild(rvIn); tr.appendChild(rvTd);
-      // Label
-      const lbTd = document.createElement('td');
-      const lbIn = document.createElement('input');
-      lbIn.value = r.label; lbIn.onchange = e=>r.label=e.target.value;
-      lbTd.appendChild(lbIn); tr.appendChild(lbTd);
-      // From
-      tr.appendChild(Object.assign(document.createElement('td'),{textContent:r.fromMetaObjectID}));
-      // To
-      const toTd = document.createElement('td');
-      const toSel = document.createElement('select');
-      metaTypes.forEach(mt => {
-        const o = new Option(mt.name,mt.id,false,r.toMetaObjectID===mt.id);
-        toSel.appendChild(o);
-      });
-      toSel.onchange = e=>r.toMetaObjectID=e.target.value;
-      toTd.appendChild(toSel); tr.appendChild(toTd);
-      // System
-      const syTd2 = document.createElement('td');
-      const syCb2 = document.createElement('input');
-      syCb2.type='checkbox'; syCb2.checked=r.system;
-      syCb2.onchange=e=>r.system=e.target.checked;
-      syTd2.appendChild(syCb2); tr.appendChild(syTd2);
-      // Actions
-      const acTd2 = document.createElement('td');
-      const del2 = document.createElement('button');
-      del2.className='btn btn-danger'; del2.textContent='Delete';
-      del2.onclick=()=>{ metaRels.splice(i,1); renderRels(); };
-      acTd2.appendChild(del2); tr.appendChild(acTd2);
+function renderRels() {
+  const filterId = document.getElementById('relsFilterSelect').value;
+  const tbody    = document.getElementById('relsBody');
+  tbody.innerHTML = '';
 
-      tbody.appendChild(tr);
+  metaRels.forEach((r, i) => {
+    // only show if either end matches the selected type
+    if (r.fromMetaObjectID !== filterId && r.toMetaObjectID !== filterId) return;
+
+    const isForward   = r.fromMetaObjectID === filterId;
+    const dispName    = isForward ? r.name        : r.reverseName;
+    const dispReverse = isForward ? r.reverseName : r.name;
+    const fromId      = isForward ? r.fromMetaObjectID : r.toMetaObjectID;
+    const toId        = isForward ? r.toMetaObjectID   : r.fromMetaObjectID;
+
+    const tr = document.createElement('tr');
+
+    // ID
+    tr.appendChild(Object.assign(document.createElement('td'), {
+      textContent: r.id
+    }));
+
+    // Name
+    const nmTd = document.createElement('td');
+    const nmIn = document.createElement('input');
+    nmIn.value = dispName;
+    nmIn.onchange = e => {
+      if (isForward) r.name = e.target.value;
+      else           r.reverseName = e.target.value;
+      renderRels();
+    };
+    nmTd.appendChild(nmIn);
+    tr.appendChild(nmTd);
+
+    // Reverse Name
+    const rvTd = document.createElement('td');
+    const rvIn = document.createElement('input');
+    rvIn.value = dispReverse;
+    rvIn.onchange = e => {
+      if (isForward) r.reverseName = e.target.value;
+      else           r.name        = e.target.value;
+      renderRels();
+    };
+    rvTd.appendChild(rvIn);
+    tr.appendChild(rvTd);
+
+    // Label
+    const lbTd = document.createElement('td');
+    const lbIn = document.createElement('input');
+    lbIn.value = r.label;
+    lbIn.onchange = e => { r.label = e.target.value; };
+    lbTd.appendChild(lbIn);
+    tr.appendChild(lbTd);
+
+    // From
+    tr.appendChild(Object.assign(document.createElement('td'), {
+      textContent: metaTypes.find(t => t.id === fromId)?.name || fromId
+    }));
+
+    // To
+    const toTd = document.createElement('td');
+    const toSel = document.createElement('select');
+    metaTypes.forEach(mt => {
+      const o = new Option(mt.name, mt.id, false, mt.id === toId);
+      toSel.appendChild(o);
     });
-  }
+    toSel.onchange = e => {
+      if (isForward) r.toMetaObjectID = e.target.value;
+      else           r.fromMetaObjectID = e.target.value;
+      renderRels();
+    };
+    toTd.appendChild(toSel);
+    tr.appendChild(toTd);
+
+    // System checkbox
+    const sysTd = document.createElement('td');
+    const sysCb = document.createElement('input');
+    sysCb.type    = 'checkbox';
+    sysCb.checked = r.system;
+    sysCb.onchange = e => { r.system = e.target.checked; };
+    sysTd.appendChild(sysCb);
+    tr.appendChild(sysTd);
+
+    // Delete button
+    const delTd = document.createElement('td');
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn btn-danger btn-sm';
+    delBtn.textContent = 'Delete';
+    delBtn.onclick = () => {
+      metaRels.splice(i,1);
+      renderRels();
+    };
+    delTd.appendChild(delBtn);
+    tr.appendChild(delTd);
+
+    tbody.appendChild(tr);
+  });
+}
+
   document.getElementById('loadRelsBtn').addEventListener('click', () => {
     const f = document.getElementById('relsFile').files[0];
     if (!f) return;

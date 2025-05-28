@@ -1,9 +1,10 @@
-id,name,label,type_IDs,dataType,widget,icon,options,default_value,group,layout,system
-201,capability_id,Capability ID,101,short text,text input,hash,,,Identity,one-third,True
-202,goal,Goal,101,long text,textarea,bullseye,,,Definition,full-width,True
-203,function_id,Function ID,102,short text,text input,gear,,,Identity,one-third,True
-204,performance,Performance,102,integer,spinner,speedometer,Before:%,100,Metrics,half-right,False
-205,service_id,Service ID,103,short text,text input,cloud,,,Identity,one-third,True
-206,sla,SLA Level,103,short text,select,award,"Gold,Silver,Bronze",Silver,Definition,half-left,False
-207,system_type,System Type,108,short text,select,cpu,"Hardware,Software,Hybrid",Hybrid,Definition,half-left,True
-208,uptime,Uptime,108,percentage,progress bar,bar-chart,"99:Excellent:success,95:Good:warning,90:Fair:danger",99,Metrics,half-right,False
+MetaObjectID,Property,DataType,Widget,Options
+MO1,Effectiveness,integer,progress bar,"80:Good:success,20:Poor:danger"
+MO2,Priority,short text,radio group,"High,Medium,Low"
+MO4,Frequency,integer,stepper,"0,24,1"
+MO5,Location,short text,text input,
+MO6,Data Volume,integer,range slider,"0,1000,50"
+MO7,Version,short text,text input,
+MO9,Lifecycle Stage,short text,single select,"Design,Development,Deployment"
+MO11,Start Date,date,date picker,
+MO12,Completion,percentage,editable progress bar,"50,100"

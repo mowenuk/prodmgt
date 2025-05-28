@@ -1,7 +1,13 @@
-id,name,reverseName,label,fromMetaObjectID,toMetaObjectID,system
-301,supports,is supported by,,101,102,True
-302,uses,is used by,,103,104,True
-303,performs,is performed by,,107,105,True
-304,exchanges,is exchanged by,,105,106,True
-305,implements,is implemented by,,102,108,True
-306,conforms to,is standard for,,108,109,True
+FromID,ToID,Relationship
+MO1,MO2,enables
+MO2,MO3,drives
+MO3,MO4,accomplished by
+MO4,MO5,performed at
+MO5,MO6,communicates via
+MO6,MO7,uses
+MO7,MO8,accessed through
+MO8,MO9,realized by
+MO9,MO10,performs
+MO10,MO11,developed under
+MO11,MO12,milestone for
+MO13,MO14,defines terms for

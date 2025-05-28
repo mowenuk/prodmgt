@@ -1,10 +1,15 @@
-id,name,description,icon,system
-101,Capability,The ability to achieve a desired effect under specified standards and conditions.,bullseye,True
-102,Function,Describes what a system must do.,gear,True
-103,Service,A unit of functionality packaged for use by other entities.,cloud-check,True
-104,Resource,A logical or physical asset used by capabilities or services.,box,True
-105,Operational Activity,Tasks or processes conducted in support of a mission.,activity,True
-106,Information Element,Information required or produced by activities.,file-earmark-text,True
-107,Organization,An entity responsible for carrying out activities.,building,True
-108,System,A set of related components that produce results.,cpu,True
-109,Standard,Rules or guidelines used to ensure consistency and quality.,check2-square,True
+ID,Name,Description,Type
+MO1,Capability,Describes the ability to achieve a desired effect.,Strategic
+MO2,Enterprise Goal,High-level enterprise goals.,Strategic
+MO3,Mission,Describes a task with a purpose.,Strategic
+MO4,Operational Activity,An activity performed to achieve an operational goal.,Operational
+MO5,Operational Node,Logical or physical locations for operations.,Operational
+MO6,Information Exchange,Exchange of information between nodes.,Operational
+MO7,Service Specification,Defines a set of service functions.,Service-Oriented
+MO8,Service Interface,Interface through which a service is accessed.,Service-Oriented
+MO9,System,A grouping of hardware and software components.,Systems
+MO10,System Function,Function performed by a system.,Systems
+MO11,Project,Represents a plan with resources and timeline.,Program
+MO12,Milestone,A key point or event in a project.,Program
+MO13,Architecture Description,Defines the scope and content of architecture.,All
+MO14,Glossary,Defines terminology used in architecture.,All
