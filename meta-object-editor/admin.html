@@ -60,6 +60,7 @@
   <div class="tab" data-tab="relsTab">Relationships</div>
   <div class="tab" data-tab="schemaTab">Schema</div>
   <div class="tab" data-tab="previewTab">Preview</div>
+
 </div>
 
 <!-- Object Types -->
@@ -1987,23 +1988,39 @@ wrapper.classList.add('mt-1');          // small gap above
           }
 
 
-        case 'rich text': {
-          const editorDiv = document.createElement('div');
-          editorDiv.id        = `preview-rich-${r.id}`;
-          editorDiv.className = 'form-control';
-          editorDiv.style.minHeight = '120px';
-          wrap.appendChild(editorDiv);
-          setTimeout(() => {
-            const q = new Quill(editorDiv, {
-              theme:    'snow',
-              placeholder: r.defaultValue || r.options[0] || ''
-            });
-            if (r.defaultValue) q.setText(r.defaultValue);
-            else if (r.options[0]) q.setText(r.options[0]);
-            quillEditors[`preview-${r.id}`] = q;
-          }, 0);
-          break;
-        }
+case 'rich text': {
+  const editorDiv = document.createElement('div');
+  editorDiv.id        = `preview-rich-${r.id}`;
+  editorDiv.className = 'form-control';
+  editorDiv.style.minHeight = '120px';
+  wrap.appendChild(editorDiv);
+
+  // delay so Quill can attach
+  setTimeout(() => {
+    const q = new Quill(editorDiv, {
+      theme: 'snow',
+      modules: {
+        toolbar: [
+          ['bold','italic','underline','strike'],
+          [{ 'header': [1, 2, 3, false] }],
+          [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+          ['link','image']
+        ]
+      },
+      placeholder: r.defaultValue || r.options[0] || ''
+    });
+
+    // if you stored HTML in defaultValue/options, paste it
+    const html = r.defaultValue || r.options[0] || '';
+    if (html) {
+      q.clipboard.dangerouslyPasteHTML(html);
+    }
+
+    quillEditors[`preview-${r.id}`] = q;
+  }, 0);
+  break;
+}
+
 
         case 'single choice': {
           const hidden = document.createElement('input');

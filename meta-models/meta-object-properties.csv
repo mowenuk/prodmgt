@@ -5,7 +5,7 @@ id,name,label,type_IDs,dataType,widget,icon,options,default_value,group,layout,s
 4,owner,Owner,"1,2,3,4,5,6,7,8,9,10",short text,text input,person-add,,,System,half-right,TRUE
 5,comment,Comment,"1,2,3,4,5,6,7,8,9,10",long text,textarea,chat-left-text,,,,full-width,FALSE
 6,priority,Priority,"1,2,3,4,9",short text,single select,flag,"High,Medium,Low",Low,,quarter,FALSE
-7,duration,Duration,"1,2,3,4,",integer,spinner,hourglass,,5,Dates,quarter,FALSE
+7,duration,Duration,"1,2,3,4,",integer,spinner,hourglass,,5,,quarter,FALSE
 8,start_date,Start Date,"1,2,3",date,date picker,calendar-date,,,Dates,quarter,FALSE
 14,end_date,End Date,"1,2,3",date,date picker,calendar-date,,,Dates,quarter,FALSE
 16,elapsed_date,Elapsed Days,"1,2,3",formula,formula editor,calendar-day,"14,-,8",,Dates,quarter,FALSE
